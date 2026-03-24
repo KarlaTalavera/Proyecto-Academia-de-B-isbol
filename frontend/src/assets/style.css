@@ -1,0 +1,283 @@
+/* =====================================================
+   LIGA DIAMANTE — Glassmorphism UI
+   ===================================================== */
+
+/* ---------- FONDO GLOBAL ---------- */
+html, body {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #c9f0de 0%, #bdd9f8 45%, #e0d4f7 100%) !important;
+  background-attachment: fixed !important;
+}
+
+/* ---------- SIDEBAR — transparente, mismo fondo ---------- */
+.navbar-vertical.navbar-expand-lg {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.5) !important;
+  box-shadow: none !important;
+}
+
+/* Brand */
+.navbar-brand { padding: 1.25rem 1rem !important; }
+.brand-logo {
+  width: 36px; height: 36px;
+  background: linear-gradient(135deg, #3b82f6, #6366f1);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-size: 18px; font-weight: 800; flex-shrink: 0;
+}
+.brand-text strong { font-size: 1.05rem; font-weight: 700; color: #1e293b; }
+.brand-text span   { font-size: 0.72rem; color: #64748b; display: block; }
+
+/* Nav items */
+.navbar-vertical .navbar-nav { padding: 0 0.75rem; gap: 2px; }
+.navbar-vertical .nav-item   { border-radius: 10px; overflow: hidden; }
+
+.navbar-vertical .nav-link {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 0.65rem 0.9rem !important;
+  border-radius: 10px !important;
+  color: #475569 !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  transition: all 0.18s ease !important;
+}
+.navbar-vertical .nav-link:hover {
+  background: rgba(99, 102, 241, 0.09) !important;
+  color: #4f46e5 !important;
+}
+.navbar-vertical .nav-link:hover svg { color: #4f46e5 !important; }
+
+/* Active state */
+.navbar-vertical .nav-link.router-link-active,
+.navbar-vertical .nav-link.router-link-exact-active {
+  background: linear-gradient(135deg, rgba(59,130,246,0.18), rgba(99,102,241,0.18)) !important;
+  color: #3b82f6 !important;
+  font-weight: 600 !important;
+}
+.navbar-vertical .nav-link.router-link-active svg,
+.navbar-vertical .nav-link.router-link-exact-active svg {
+  color: #3b82f6 !important;
+}
+
+.nav-link-icon { display: flex; align-items: center; flex-shrink: 0; }
+
+/* Nav section label */
+.nav-section-label {
+  font-size: 0.65rem; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: #94a3b8; padding: 0.75rem 0.9rem 0.25rem;
+}
+
+/* User card at bottom */
+.sidebar-user {
+  margin: 0.75rem; padding: 0.85rem 1rem;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 14px;
+  display: flex; align-items: center; gap: 0.75rem;
+}
+.user-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #3b82f6);
+  color: white; font-weight: 700; font-size: 0.9rem;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.user-info { flex: 1; min-width: 0; }
+.user-name { font-size: 0.82rem; font-weight: 600; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.user-role { font-size: 0.68rem; color: #64748b; text-transform: capitalize; }
+.btn-logout {
+  background: none; border: none; color: #94a3b8;
+  cursor: pointer; padding: 4px; border-radius: 6px;
+  display: flex; align-items: center;
+  transition: color 0.15s, background 0.15s;
+}
+.btn-logout:hover { color: #ef4444; background: rgba(239,68,68,0.1); }
+
+/* ---------- PAGE WRAPPER ---------- */
+.page-wrapper { background: transparent !important; }
+
+/* Top header — fusionado con el fondo */
+.top-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1rem 1.75rem;
+  background: transparent;
+  backdrop-filter: none;
+  border-bottom: none;
+}
+.top-greeting { font-size: 0.875rem; color: #475569; }
+.top-greeting strong { color: #1e293b; }
+.top-user-info {
+  display: flex; align-items: center; gap: 0.6rem;
+}
+.top-user-name {
+  font-size: 0.875rem; font-weight: 600; color: #1e293b;
+}
+.top-user-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #3b82f6);
+  color: white; font-weight: 700; font-size: 0.9rem;
+  display: flex; align-items: center; justify-content: center;
+  border: 2px solid rgba(255,255,255,0.9);
+  box-shadow: 0 2px 8px rgba(99,102,241,0.25);
+}
+
+/* ---------- CARDS GLASS ---------- */
+.card, .card-sm {
+  border-radius: 18px !important;
+  background: rgba(255, 255, 255, 0.78) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.65) !important;
+  box-shadow: 0 4px 28px rgba(0, 0, 0, 0.06) !important;
+}
+.card-header {
+  background: transparent !important;
+  border-bottom: 1px solid rgba(0,0,0,0.06) !important;
+  border-radius: 18px 18px 0 0 !important;
+}
+
+/* KPI cards */
+.kpi-card {
+  border-radius: 18px;
+  padding: 1.4rem 1.5rem;
+  background: rgba(255,255,255,0.78);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255,255,255,0.65);
+  box-shadow: 0 4px 28px rgba(0,0,0,0.06);
+}
+.kpi-icon {
+  width: 48px; height: 48px; border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 1rem;
+}
+.kpi-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #94a3b8; margin-bottom: 4px; }
+.kpi-value { font-size: 1.9rem; font-weight: 800; color: #1e293b; line-height: 1; }
+.kpi-sub   { font-size: 0.78rem; color: #64748b; margin-top: 4px; }
+
+/* ---------- BUTTONS ---------- */
+.btn-primary {
+  background: linear-gradient(135deg, #3b82f6, #6366f1) !important;
+  border: none !important; border-radius: 9px !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 10px rgba(99,102,241,0.28) !important;
+  transition: all 0.18s ease !important;
+}
+.btn-primary:hover {
+  background: linear-gradient(135deg, #2563eb, #4f46e5) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 16px rgba(99,102,241,0.38) !important;
+}
+.btn-primary:active { transform: translateY(0) !important; }
+
+/* ---------- FORMS ---------- */
+.form-control, .form-select {
+  border-radius: 9px !important;
+  border: 1px solid rgba(0,0,0,0.12) !important;
+  background: rgba(255,255,255,0.8) !important;
+  transition: border-color 0.15s, box-shadow 0.15s !important;
+}
+.form-control:focus, .form-select:focus {
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.15) !important;
+  background: rgba(255,255,255,1) !important;
+}
+
+/* ---------- MODAL GLASS ---------- */
+.modal-content {
+  background: rgba(255, 255, 255, 0.92) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  border-radius: 20px !important;
+  border: 1px solid rgba(255,255,255,0.7) !important;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.14) !important;
+}
+.modal-backdrop { backdrop-filter: blur(4px) !important; background: rgba(15,23,42,0.4) !important; }
+.modal-header {
+  border-bottom: 1px solid rgba(0,0,0,0.07) !important;
+  border-radius: 20px 20px 0 0 !important;
+}
+.modal-footer {
+  border-top: 1px solid rgba(0,0,0,0.07) !important;
+  border-radius: 0 0 20px 20px !important;
+}
+
+/* ---------- TABLE ---------- */
+.table { --tblr-table-border-color: rgba(0,0,0,0.06); }
+.table thead th {
+  font-size: 0.72rem !important; font-weight: 700 !important;
+  letter-spacing: 0.06em !important; text-transform: uppercase !important;
+  color: #94a3b8 !important;
+  border-bottom: 1px solid rgba(0,0,0,0.06) !important;
+}
+.table-vcenter td { vertical-align: middle !important; }
+
+/* ---------- BADGES ---------- */
+.badge { border-radius: 6px !important; font-weight: 600 !important; font-size: 0.7rem !important; }
+
+/* ---------- LOGIN PAGE ---------- */
+.login-wrapper {
+  min-height: 100vh; display: flex;
+  align-items: center; justify-content: center; padding: 2rem;
+}
+.login-card {
+  width: 100%; max-width: 420px;
+  background: rgba(255,255,255,0.82);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border-radius: 24px;
+  border: 1px solid rgba(255,255,255,0.7);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.12);
+  padding: 2.5rem;
+}
+.login-logo {
+  width: 56px; height: 56px;
+  background: linear-gradient(135deg, #3b82f6, #6366f1);
+  border-radius: 16px; display: flex;
+  align-items: center; justify-content: center;
+  color: white; font-size: 1.6rem;
+  margin: 0 auto 1.25rem;
+  box-shadow: 0 8px 24px rgba(99,102,241,0.3);
+}
+
+/* ---------- PAGE HEADER ---------- */
+/* Tabler fuerza flex-column + align-center; lo anulamos aquí */
+.page-header {
+  margin-bottom: 1.5rem !important;
+  display: block !important;
+  text-align: left !important;
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+}
+/* Cuando la vista añade d-flex justify-content-between (botón a la derecha) */
+.page-header.d-flex {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+.page-title {
+  font-size: 1.5rem !important;
+  font-weight: 800 !important;
+  color: #1e293b !important;
+  margin: 0 !important;
+  text-align: left !important;
+}
+.page-subtitle { font-size: 0.875rem; color: #64748b; margin-top: 2px; text-align: left !important; }
+
+/* Team avatar */
+.team-avatar {
+  width: 36px; height: 36px; border-radius: 10px;
+  background: linear-gradient(135deg, #6366f1, #3b82f6);
+  color: white; font-weight: 700; font-size: 0.85rem;
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 10px; }
