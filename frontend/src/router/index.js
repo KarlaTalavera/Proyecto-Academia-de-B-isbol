@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/store/auth'
 
 const routes = [
+  
   { path: '/login', name: 'Login', component: () => import('@/views/LoginView.vue'), meta: { publico: true } },
 
   // ── Landing pública ───────────────────────────────────────
@@ -58,7 +59,10 @@ const routes = [
   },
 
   { path: '/:pathMatch(.*)*', redirect: { name: 'LandingInicio' } },
+
+  
 ]
+
 
 const router = createRouter({
   history: createWebHistory(),

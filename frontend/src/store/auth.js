@@ -2,11 +2,16 @@ import { defineStore } from 'pinia'
 import api from '@/services/api'
 
 export const useAuthStore = defineStore('auth', {
-  state: () => ({
-    token:  localStorage.getItem('token') || null,
-    rol:    localStorage.getItem('rol')   || null,
-    nombre: localStorage.getItem('nombre')|| null,
-  }),
+  state: () => ({ user: null, token: null, rol: null }),
+actions: {
+  async login(email, password) {
+    const res = await api.post('/auth/login', { email, password })
+    this.token = res.data.token
+    this.user = res.data.user
+    this.rol = res.data.user.rol
+    localStorage.setItem('token', this.token)
+  }
+},
 
   getters: {
     esAdmin:       s => s.rol === 'administrador',
