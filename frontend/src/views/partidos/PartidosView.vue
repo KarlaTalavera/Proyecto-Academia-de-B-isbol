@@ -39,7 +39,7 @@
     </div>
 
     <div v-else class="row g-3">
-      <div v-for="p in partidosFiltrados" :key="p.id_partido" class="col-12">
+      <div v-for="p in partidosPagina" :key="p.id_partido" class="col-12">
         <div class="card" style="transition: transform 0.15s; cursor:default;">
           <div class="card-body py-3">
             <div class="d-flex align-items-center flex-wrap gap-3">
@@ -94,6 +94,25 @@
             </div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Paginación -->
+    <div v-if="totalPaginas > 1" class="d-flex align-items-center justify-content-between mt-3">
+      <span class="text-muted" style="font-size:0.8rem;">
+        Mostrando {{ (paginaActual - 1) * porPagina + 1 }}–{{ Math.min(paginaActual * porPagina, partidosFiltrados.length) }}
+        de {{ partidosFiltrados.length }} partidos
+      </span>
+      <div class="d-flex gap-1">
+        <button class="btn btn-sm btn-ghost-secondary" :disabled="paginaActual === 1" @click="paginaActual--">‹ Anterior</button>
+        <button
+          v-for="n in totalPaginas" :key="n"
+          class="btn btn-sm"
+          :class="n === paginaActual ? 'btn-primary' : 'btn-ghost-secondary'"
+          style="min-width:34px;"
+          @click="paginaActual = n"
+        >{{ n }}</button>
+        <button class="btn btn-sm btn-ghost-secondary" :disabled="paginaActual === totalPaginas" @click="paginaActual++">Siguiente ›</button>
       </div>
     </div>
 
@@ -519,7 +538,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, markRaw } from 'vue'
+import { ref, computed, watch, onMounted, markRaw } from 'vue'
 import api from '@/services/api'
 import { useAuthStore } from '@/store/auth'
 import {
@@ -577,9 +596,22 @@ const tabsDisponibles = computed(() => [
   { id: 'estadisticas', label: 'Estadísticas',    icon: markRaw(IconChartBar) },
 ])
 
+const paginaActual   = ref(1)
+const porPagina      = 8
+
 const partidosFiltrados = computed(() =>
   partidos.value.filter(p => !filtroEstado.value || p.estado === filtroEstado.value)
 )
+
+const totalPaginas = computed(() => Math.max(1, Math.ceil(partidosFiltrados.value.length / porPagina)))
+
+const partidosPagina = computed(() => {
+  const inicio = (paginaActual.value - 1) * porPagina
+  return partidosFiltrados.value.slice(inicio, inicio + porPagina)
+})
+
+// Resetear página al cambiar filtro
+watch(filtroEstado, () => { paginaActual.value = 1 })
 
 function contarEstado(estado) {
   if (!estado) return partidos.value.length
@@ -692,6 +724,10 @@ function abrirNuevoPartido() {
 }
 
 async function crearPartido() {
+  if (nuevoForm.value.id_equipo_casa && nuevoForm.value.id_equipo_visitante &&
+      nuevoForm.value.id_equipo_casa === nuevoForm.value.id_equipo_visitante) {
+    alert('El equipo local y visitante no pueden ser el mismo'); return
+  }
   guardandoNuevo.value = true
   errorNuevo.value = ''
   try {
@@ -766,10 +802,16 @@ function agregarPitcher() {
 }
 
 async function guardarStatBateador(b) {
+  if (b.hits > b.turnos_al_bate) {
+    alert('Los hits no pueden superar los turnos al bate'); return
+  }
   await api.post(`/partidos/${partidoActual.value.id_partido}/desempeno/bateador`, { ...b, id_partido: partidoActual.value.id_partido })
 }
 
 async function guardarStatPitcher(pt) {
+  if (pt.carreras_limpias > pt.carreras_permitidas) {
+    alert('Las carreras limpias no pueden superar las carreras permitidas'); return
+  }
   await api.post(`/partidos/${partidoActual.value.id_partido}/desempeno/pitcher`, { ...pt, id_partido: partidoActual.value.id_partido })
 }
 

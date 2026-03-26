@@ -51,7 +51,7 @@
                 No hay jugadores registrados
               </td>
             </tr>
-            <tr v-for="j in jugadoresFiltrados" :key="j.id_jugador">
+            <tr v-for="j in jugadoresPagina" :key="j.id_jugador">
               <td>
                 <div class="d-flex align-items-center gap-2">
                   <div class="team-avatar" style="background: linear-gradient(135deg,#6366f1,#8b5cf6);">
@@ -86,6 +86,25 @@
             </tr>
           </tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- Paginación -->
+    <div v-if="totalPaginas > 1" class="d-flex align-items-center justify-content-between mt-3">
+      <span class="text-muted" style="font-size:0.8rem;">
+        Mostrando {{ (paginaActual - 1) * porPagina + 1 }}–{{ Math.min(paginaActual * porPagina, jugadoresFiltrados.length) }}
+        de {{ jugadoresFiltrados.length }} jugadores
+      </span>
+      <div class="d-flex gap-1">
+        <button class="btn btn-sm btn-ghost-secondary" :disabled="paginaActual === 1" @click="paginaActual--">‹ Anterior</button>
+        <button
+          v-for="n in totalPaginas" :key="n"
+          class="btn btn-sm"
+          :class="n === paginaActual ? 'btn-primary' : 'btn-ghost-secondary'"
+          style="min-width:34px;"
+          @click="paginaActual = n"
+        >{{ n }}</button>
+        <button class="btn btn-sm btn-ghost-secondary" :disabled="paginaActual === totalPaginas" @click="paginaActual++">Siguiente ›</button>
       </div>
     </div>
 
@@ -180,7 +199,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import api from '@/services/api'
 import { useAuthStore } from '@/store/auth'
 import { IconPlus, IconSearch, IconPencil, IconTrash, IconUsers, IconDeviceFloppy } from '@tabler/icons-vue'
@@ -204,6 +223,9 @@ const posiciones = [
 
 const form = ref({ id_equipo: '', cedula: '', nombre: '', apellido: '', fecha_nacimiento: '', rol: 'bateador', posicion: '', brazo_dominante: '', activo: 1 })
 
+const paginaActual = ref(1)
+const porPagina    = 10
+
 const jugadoresFiltrados = computed(() =>
   jugadores.value.filter(j => {
     const texto = `${j.nombre} ${j.apellido}`.toLowerCase()
@@ -211,6 +233,14 @@ const jugadoresFiltrados = computed(() =>
       (!filtroEquipo.value || j.id_equipo === Number(filtroEquipo.value) || j.id_equipo === filtroEquipo.value)
   })
 )
+
+const totalPaginas    = computed(() => Math.max(1, Math.ceil(jugadoresFiltrados.value.length / porPagina)))
+const jugadoresPagina = computed(() => {
+  const inicio = (paginaActual.value - 1) * porPagina
+  return jugadoresFiltrados.value.slice(inicio, inicio + porPagina)
+})
+
+watch([busqueda, filtroEquipo], () => { paginaActual.value = 1 })
 
 function badgeRol(rol) {
   return { bateador: 'bg-blue-lt text-blue', pitcher: 'bg-purple-lt text-purple', utilidad: 'bg-orange-lt text-orange' }[rol] || 'bg-secondary-lt'
@@ -240,6 +270,19 @@ function abrirFormulario(jugador = null) {
 function cerrarModal() { modalAbierto.value = false }
 
 async function guardar() {
+  const nombre = (form.value.nombre || '').trim()
+  const apellido = (form.value.apellido || '').trim()
+  if (nombre.length < 2) { alert('El nombre debe tener al menos 2 caracteres'); return }
+  if (apellido.length < 2) { alert('El apellido debe tener al menos 2 caracteres'); return }
+  if (form.value.cedula && !/^[VEve]-\d{6,8}$/.test(form.value.cedula)) {
+    alert('La cédula debe tener el formato V-00000000 o E-00000000'); return
+  }
+  if (form.value.fecha_nacimiento) {
+    const hoy = new Date()
+    const nacimiento = new Date(form.value.fecha_nacimiento)
+    const edad = (hoy - nacimiento) / (1000 * 60 * 60 * 24 * 365.25)
+    if (edad < 10 || edad > 60) { alert('La edad del jugador debe estar entre 10 y 60 años'); return }
+  }
   guardando.value = true
   errorModal.value = ''
   try {

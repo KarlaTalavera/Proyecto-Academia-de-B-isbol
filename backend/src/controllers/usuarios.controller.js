@@ -3,7 +3,7 @@ const bcrypt       = require('bcryptjs')
 
 const UsuariosController = {
   async listar(req, res) {
-    const usuarios = await UsuarioModel.findAll()
+    const usuarios = await UsuarioModel.findAllNonPublico()
     res.json(usuarios)
   },
 
@@ -57,6 +57,25 @@ const UsuariosController = {
     const affected = await UsuarioModel.delete(req.params.id)
     if (!affected) return res.status(404).json({ error: 'Usuario no encontrado' })
     res.json({ ok: true })
+  },
+
+  async crear(req, res) {
+    const { nombre, email, password, rol } = req.body
+    if (!nombre || !email || !password) {
+      return res.status(400).json({ error: 'nombre, email y password son requeridos' })
+    }
+    // Admin cannot create publico users through this endpoint
+    const ROLES_ADMIN = ['administrador', 'dueno', 'caja', 'anotador']
+    if (!ROLES_ADMIN.includes(rol)) {
+      return res.status(400).json({ error: 'Rol inválido. Use: administrador, dueno, caja, anotador' })
+    }
+    const existe = await UsuarioModel.findByEmail(email)
+    if (existe) return res.status(409).json({ error: 'Email ya registrado' })
+
+    const bcrypt = require('bcryptjs')
+    const password_hash = await bcrypt.hash(password, 10)
+    const id = await UsuarioModel.create({ nombre, email, password_hash, rol })
+    res.status(201).json({ id_usuario: id })
   },
 }
 

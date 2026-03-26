@@ -45,8 +45,6 @@
               <RouterLink class="nav-link" :to="{ name: 'Partidos' }">
                 <span class="nav-link-icon"><IconCalendarEvent :size="20" stroke-width="1.7" /></span>
                 <span class="nav-link-title">Partidos</span>
-                <!-- Badge para anotador -->
-                <span v-if="auth.esAnotador" class="ms-auto badge" style="background:rgba(99,102,241,0.15); color:#6366f1; font-size:0.6rem;">ANOTAR</span>
               </RouterLink>
             </li>
 

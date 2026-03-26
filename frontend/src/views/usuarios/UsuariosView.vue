@@ -5,6 +5,9 @@
         <h2 class="page-title">Gestión de Usuarios</h2>
         <p class="page-subtitle">Control de acceso y roles del sistema</p>
       </div>
+      <button class="btn btn-primary d-flex align-items-center gap-2" @click="abrirCrear">
+        <IconUserPlus :size="18" stroke-width="2" /> Nuevo Usuario
+      </button>
     </div>
 
     <!-- Leyenda de roles -->
@@ -115,6 +118,51 @@
       </div>
     </div>
 
+    <!-- Modal crear usuario -->
+    <div v-if="modalCrear" class="modal modal-blur show d-block" tabindex="-1">
+      <div class="modal-dialog modal-md modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Nuevo Usuario</h5>
+            <button type="button" class="btn-close" @click="modalCrear = false"></button>
+          </div>
+          <form @submit.prevent="crearUsuario">
+            <div class="modal-body">
+              <div v-if="errorCrear" class="alert alert-danger py-2 mb-3">{{ errorCrear }}</div>
+              <div class="mb-3">
+                <label class="form-label required">Nombre completo</label>
+                <input v-model="crearForm.nombre" class="form-control" placeholder="Nombre del usuario" required />
+              </div>
+              <div class="mb-3">
+                <label class="form-label required">Correo electrónico</label>
+                <input v-model="crearForm.email" type="email" class="form-control" placeholder="correo@ejemplo.com" required />
+              </div>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label required">Contraseña</label>
+                  <input v-model="crearForm.password" type="password" class="form-control" placeholder="Mínimo 6 caracteres" required />
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label required">Rol</label>
+                  <select v-model="crearForm.rol" class="form-select" required>
+                    <option value="">— Seleccionar —</option>
+                    <option v-for="r in rolesDisponibles" :key="r.value" :value="r.value">{{ r.label }}</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-ghost-secondary me-auto" @click="modalCrear = false">Cancelar</button>
+              <button type="submit" class="btn btn-primary" :disabled="guardando">
+                {{ guardando ? 'Creando...' : 'Crear Usuario' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    <div v-if="modalCrear" class="modal-backdrop show"></div>
+
     <!-- Modal reset password -->
     <div v-if="modalPassword" class="modal modal-blur show d-block" tabindex="-1">
       <div class="modal-dialog modal-sm modal-dialog-centered">
@@ -157,7 +205,7 @@
 import { ref, computed, onMounted } from 'vue'
 import api from '@/services/api'
 import { useAuthStore } from '@/store/auth'
-import { IconSearch, IconTrash, IconToggleLeft, IconToggleRight, IconKey } from '@tabler/icons-vue'
+import { IconSearch, IconTrash, IconToggleLeft, IconToggleRight, IconKey, IconUserPlus } from '@tabler/icons-vue'
 
 const auth    = useAuthStore()
 const miId    = computed(() => {
@@ -176,12 +224,47 @@ const errorModal  = ref('')
 const nuevaPassword = ref('')
 const usuarioSeleccionado = ref(null)
 
+const modalCrear  = ref(false)
+const errorCrear  = ref('')
+const crearForm   = ref({ nombre: '', email: '', password: '', rol: '' })
+
+function abrirCrear() {
+  crearForm.value = { nombre: '', email: '', password: '', rol: '' }
+  errorCrear.value = ''
+  modalCrear.value = true
+}
+
+async function crearUsuario() {
+  errorCrear.value = ''
+  if ((crearForm.value.nombre || '').trim().length < 3) {
+    errorCrear.value = 'El nombre debe tener al menos 3 caracteres'
+    return
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(crearForm.value.email || '')) {
+    errorCrear.value = 'El formato del correo electrónico no es válido'
+    return
+  }
+  if (crearForm.value.password.length < 6) {
+    errorCrear.value = 'La contraseña debe tener al menos 6 caracteres'
+    return
+  }
+  guardando.value = true
+  try {
+    await api.post('/usuarios', crearForm.value)
+    modalCrear.value = false
+    await cargar()
+  } catch (e) {
+    errorCrear.value = e.response?.data?.error || 'Error al crear usuario'
+  } finally {
+    guardando.value = false
+  }
+}
+
 const rolesDisponibles = [
   { value: 'administrador', label: 'Administrador' },
   { value: 'dueno',         label: 'Dueño' },
   { value: 'caja',          label: 'Caja' },
   { value: 'anotador',      label: 'Anotador' },
-  { value: 'publico',       label: 'Público' },
 ]
 
 const rolesInfo = [
@@ -189,7 +272,6 @@ const rolesInfo = [
   { rol: 'dueno',         etiqueta: 'Dueño',         desc: 'Equipos, jugadores y partidos', style: 'background:rgba(249,115,22,0.15);color:#f97316;' },
   { rol: 'caja',          etiqueta: 'Caja',           desc: 'Gestión de ingresos y egresos', style: 'background:rgba(34,197,94,0.15);color:#16a34a;' },
   { rol: 'anotador',      etiqueta: 'Anotador',       desc: 'Lineup, resultados y estadísticas', style: 'background:rgba(99,102,241,0.15);color:#6366f1;' },
-  { rol: 'publico',       etiqueta: 'Público',        desc: 'Solo lectura de reportes', style: 'background:rgba(100,116,139,0.15);color:#64748b;' },
 ]
 
 const usuariosFiltrados = computed(() =>

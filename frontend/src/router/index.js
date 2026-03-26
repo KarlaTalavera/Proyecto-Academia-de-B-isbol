@@ -4,6 +4,20 @@ import { useAuthStore } from '@/store/auth'
 const routes = [
   { path: '/login', name: 'Login', component: () => import('@/views/LoginView.vue'), meta: { publico: true } },
 
+  // ── Landing pública ───────────────────────────────────────
+  {
+    path: '/',
+    component: () => import('@/views/landing/LandingLayout.vue'),
+    meta: { publico: true },
+    children: [
+      { path: '',           name: 'LandingInicio',     component: () => import('@/views/landing/InicioView.vue') },
+      { path: 'resultados', name: 'LandingResultados', component: () => import('@/views/landing/ResultadosView.vue') },
+      { path: 'noticias',   name: 'LandingNoticias',   component: () => import('@/views/landing/NoticiasView.vue') },
+      { path: 'standing',   name: 'LandingStanding',   component: () => import('@/views/landing/StandingView.vue') },
+      { path: 'calendario', name: 'LandingCalendario', component: () => import('@/views/landing/CalendarioView.vue') },
+    ],
+  },
+
   // ── Zona Fanático (rol: publico) ────────────────────────────
   {
     path: '/fan',
@@ -20,7 +34,7 @@ const routes = [
 
   // ── Zona Administrativa (todos los roles excepto publico) ───
   {
-    path: '/',
+    path: '/app',
     component: () => import('@/components/AppLayout.vue'),
     meta: { requiereAuth: true, bloqueaPublico: true },
     children: [
@@ -43,7 +57,7 @@ const routes = [
     ],
   },
 
-  { path: '/:pathMatch(.*)*', redirect: '/' },
+  { path: '/:pathMatch(.*)*', redirect: { name: 'LandingInicio' } },
 ]
 
 const router = createRouter({
@@ -54,8 +68,13 @@ const router = createRouter({
 router.beforeEach((to) => {
   const auth = useAuthStore()
 
-  // Sin sesión → login
-  if (!to.meta.publico && !auth.token) return { name: 'Login' }
+  // Sin sesión intentando acceder a zona protegida → landing
+  if (!to.meta.publico && !auth.token) return { name: 'LandingInicio' }
+
+  // Ya autenticado intenta ir al login → redirigir a su zona
+  if (auth.token && to.name === 'Login') {
+    return auth.rol === 'publico' ? { name: 'FanInicio' } : { name: 'Dashboard' }
+  }
 
   // Usuario público intenta acceder a zona administrativa → zona fan
   if (auth.token && auth.rol === 'publico' && to.meta.bloqueaPublico) {
@@ -67,7 +86,7 @@ router.beforeEach((to) => {
     return { name: 'Dashboard' }
   }
 
-  // Solo admin puede ver usuarios
+  // Solo admin puede ver ciertas vistas
   if (to.meta.soloAdmin && auth.rol !== 'administrador') return { name: 'Dashboard' }
 })
 

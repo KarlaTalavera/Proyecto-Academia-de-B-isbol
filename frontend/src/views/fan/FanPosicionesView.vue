@@ -109,7 +109,8 @@ onMounted(async () => {
     temporadas.value = tRes.data
     misEquiposIds.value = new Set(eRes.data.map(e => e.id_equipo))
     if (temporadas.value.length) {
-      temporadaId.value = temporadas.value[0].id_temporada
+      const activa = temporadas.value.find(t => t.activa)
+      temporadaId.value = (activa ?? temporadas.value[0]).id_temporada
       await cargarPosiciones()
     } else {
       cargando.value = false

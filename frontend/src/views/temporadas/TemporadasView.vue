@@ -164,6 +164,10 @@ function abrirFormulario(t = null) {
 function cerrarModal() { modalAbierto.value = false }
 
 async function guardar() {
+  if (!(form.value.nombre || '').trim()) { alert('El nombre de la temporada es obligatorio'); return }
+  const anio = Number(form.value.anio)
+  if (anio < 2000 || anio > 2100) { alert('El año debe estar entre 2000 y 2100'); return }
+  if (Number(form.value.costo_inscripcion) < 0) { alert('El costo de inscripción no puede ser negativo'); return }
   guardando.value = true
   errorModal.value = ''
   try {

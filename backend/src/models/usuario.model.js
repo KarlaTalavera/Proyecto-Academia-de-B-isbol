@@ -23,6 +23,13 @@ const UsuarioModel = {
     return rows
   },
 
+  async findAllNonPublico() {
+    const [rows] = await db.query(
+      "SELECT id_usuario, nombre, email, rol, activo, created_at FROM usuario WHERE rol != 'publico' ORDER BY created_at DESC"
+    )
+    return rows
+  },
+
   async create({ nombre, email, password_hash, rol, id_jugador }) {
     if (rol && !ROLES_VALIDOS.includes(rol)) rol = 'publico'
     const [result] = await db.query(

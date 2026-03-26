@@ -189,6 +189,18 @@ function abrirFormulario(equipo = null) {
 function cerrarModal() { modalAbierto.value = false }
 
 async function guardar() {
+  const nombre = (form.value.nombre_equipo || '').trim()
+  const entrenador = (form.value.entrenador || '').trim()
+  const responsable = (form.value.responsable || '').trim()
+  if (!nombre) { alert('El nombre del equipo es obligatorio'); return }
+  if (!entrenador) { alert('El entrenador es obligatorio'); return }
+  if (!responsable) { alert('El responsable es obligatorio'); return }
+  if (form.value.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.value.email)) {
+    alert('El formato del email no es válido'); return
+  }
+  if (form.value.telefono && !/^0\d{3}-\d{3}-\d{4}$/.test(form.value.telefono)) {
+    alert('El teléfono debe tener el formato 0414-000-0000'); return
+  }
   guardando.value  = true
   errorModal.value = ''
   try {

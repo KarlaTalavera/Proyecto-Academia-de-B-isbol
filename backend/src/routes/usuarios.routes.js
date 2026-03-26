@@ -7,6 +7,7 @@ const soloAdmin = soloRoles('administrador')
 
 // Solo administrador puede gestionar usuarios
 router.get('/',                verificarToken, soloAdmin, UsuariosController.listar)
+router.post('/',               verificarToken, soloAdmin, UsuariosController.crear)
 router.patch('/:id/rol',       verificarToken, soloAdmin, UsuariosController.actualizarRol)
 router.patch('/:id/activo',    verificarToken, soloAdmin, UsuariosController.toggleActivo)
 router.patch('/:id/password',  verificarToken, soloAdmin, UsuariosController.resetPassword)

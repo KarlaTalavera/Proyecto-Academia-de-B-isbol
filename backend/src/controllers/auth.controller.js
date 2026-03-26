@@ -23,7 +23,7 @@ const AuthController = {
   },
 
   async registro(req, res) {
-    const { nombre, email, password, rol } = req.body
+    const { nombre, email, password } = req.body
     if (!nombre || !email || !password) {
       return res.status(400).json({ error: 'nombre, email y password son requeridos' })
     }
@@ -31,7 +31,7 @@ const AuthController = {
     if (existe) return res.status(409).json({ error: 'Email ya registrado' })
 
     const password_hash = await bcrypt.hash(password, 10)
-    const id = await UsuarioModel.create({ nombre, email, password_hash, rol: rol || 'publico' })
+    const id = await UsuarioModel.create({ nombre, email, password_hash, rol: 'publico' })
     res.status(201).json({ id_usuario: id })
   },
 

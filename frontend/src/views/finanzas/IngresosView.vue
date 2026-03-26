@@ -299,6 +299,8 @@ function abrirFormulario(ingreso = null) {
 function cerrarModal() { modalAbierto.value = false }
 
 async function guardar() {
+  if (!(form.value.concepto || '').trim()) { alert('El concepto es obligatorio'); return }
+  if (!(Number(form.value.valor) > 0)) { alert('El valor debe ser mayor a 0'); return }
   guardando.value = true
   errorModal.value = ''
   try {

@@ -277,6 +277,8 @@ function abrirFormulario(egreso = null) {
 function cerrarModal() { modalAbierto.value = false }
 
 async function guardar() {
+  if (!(form.value.nota_gastos || '').trim()) { alert('La descripción del gasto es obligatoria'); return }
+  if (!(Number(form.value.gasto) > 0)) { alert('El gasto debe ser mayor a 0'); return }
   guardando.value = true
   errorModal.value = ''
   try {

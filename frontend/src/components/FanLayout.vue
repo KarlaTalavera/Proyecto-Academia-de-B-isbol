@@ -31,7 +31,6 @@
               <RouterLink class="nav-link" :to="{ name: 'MisEquipos' }">
                 <span class="nav-link-icon"><IconHeart :size="20" stroke-width="1.7" /></span>
                 <span class="nav-link-title">Mis Equipos</span>
-                <span v-if="totalSeguidos > 0" class="ms-auto badge" style="background:rgba(239,68,68,0.15); color:#ef4444; font-size:0.65rem;">{{ totalSeguidos }}</span>
               </RouterLink>
             </li>
 
