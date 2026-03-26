@@ -43,7 +43,11 @@
         </div>
       </div>
 
+<<<<<<< HEAD
       <div class="col-sm-6 col-xl-3" v-if="auth.rol === 'administrador'">
+=======
+      <div class="col-sm-6 col-xl-3" v-if="auth.puedeFinanzas">
+>>>>>>> main
         <div class="kpi-card">
           <div class="kpi-icon" style="background: rgba(34,197,94,0.12); color:#16a34a;">
             <IconWallet :size="24" stroke-width="1.7" />
@@ -163,9 +167,16 @@ async function cargar() {
       api.get('/jugadores').catch(() => ({ data: [] })),
       api.get('/partidos').catch(() => ({ data: [] })),
     ]
+<<<<<<< HEAD
     if (auth.rol === 'administrador' && temporadaActiva) {
       promesas.push(api.get('/finanzas/balance', { params: { temporada: temporadaActiva } }).catch(() => ({ data: { balance: 0 } })))
     }
+=======
+    if (auth.puedeFinanzas && temporadaActiva) {
+      promesas.push(api.get('/finanzas/balance', { params: { temporada: temporadaActiva } }).catch(() => ({ data: { balance: 0 } })))
+    }
+
+>>>>>>> main
     const resultados = await Promise.all(promesas)
     equipos.value      = resultados[0].data
     stats.value.equipos   = resultados[0].data.length

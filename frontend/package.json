@@ -1,0 +1,22 @@
+{
+  "name": "liga-diamante-frontend",
+  "version": "1.0.0",
+  "description": "Frontend Vue 3 - Sistema de Gestión Liga Diamante",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@tabler/core": "^1.0.0-beta21",
+    "@tabler/icons-vue": "^3.40.0",
+    "axios": "^1.7.2",
+    "pinia": "^2.1.7",
+    "vue": "^3.4.29",
+    "vue-router": "^4.3.3"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.0.5",
+    "vite": "^5.3.1"
+  }
+}
