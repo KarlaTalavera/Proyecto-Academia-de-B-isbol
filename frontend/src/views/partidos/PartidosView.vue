@@ -85,8 +85,8 @@
                   <button class="btn btn-sm btn-ghost-primary" @click="verDetalle(p)">
                     <IconEye :size="15" /> Detalle
                   </button>
-                  <button v-if="auth.puedeEditar" class="btn btn-sm btn-ghost-danger" @click="confirmarEliminar(p)">
-                    <IconTrash :size="15" />
+                  <button v-if="auth.usuario?.rol === 'admin'" class="btn btn-sm btn-ghost-danger" @click="confirmarEliminar(p)">
+  <IconTrash :size="15" />
                   </button>
                 </div>
               </div>

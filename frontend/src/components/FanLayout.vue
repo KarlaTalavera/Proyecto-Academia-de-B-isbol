@@ -30,7 +30,7 @@
             <li class="nav-item">
               <RouterLink class="nav-link" :to="{ name: 'MisEquipos' }">
                 <span class="nav-link-icon"><IconHeart :size="20" stroke-width="1.7" /></span>
-                <span class="nav-link-title">Mis Equipos</span>
+                <span class="nav-link-title">Equipos</span>
               </RouterLink>
             </li>
 
