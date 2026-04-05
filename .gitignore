@@ -42,3 +42,5 @@ sri.json
 # TypeScript
 *.tsbuildinfo
 .tsbuildinfo
+.claude/
+.vscode/
