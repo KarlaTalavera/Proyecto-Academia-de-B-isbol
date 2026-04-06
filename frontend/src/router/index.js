@@ -16,6 +16,10 @@ const routes = [
       { path: 'noticias',   name: 'LandingNoticias',   component: () => import('@/views/landing/NoticiasView.vue') },
       { path: 'standing',   name: 'LandingStanding',   component: () => import('@/views/landing/StandingView.vue') },
       { path: 'calendario', name: 'LandingCalendario', component: () => import('@/views/landing/CalendarioView.vue') },
+       { path: 'informacion', name: 'LandingInformacion', component: () => import('@/views/landing/informacion.vue') },
+  { path: 'equipos',     name: 'LandingEquipos',     component: () => import('@/views/landing/equipos.vue') },
+  { path: 'alineacion',  name: 'LandingAlineacion',  component: () => import('@/views/landing/alineacion.vue') },
+  { path: 'jugadores',   name: 'LandingJugadores',   component: () => import('@/views/landing/jugadores.vue') },
     ],
   },
 
