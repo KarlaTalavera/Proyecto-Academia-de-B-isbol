@@ -2,6 +2,7 @@
   <div class="iv-page">
     <LandingHeader />
 
+
     <!-- Section 01 – Información General -->
     <section class="iv-section">
       <div class="iv-container">
@@ -19,7 +20,7 @@
               equipos participantes, reglamento oficial y toda la información que necesitas
               para seguir de cerca cada temporada.
             </p>
-            <a href="#" class="iv-btn">LEER MÁS</a>
+            <router-link to="/informacion" class="iv-btn">LEER MÁS</router-link>
           </div>
           <!-- Image -->
           <div class="iv-img-col">
@@ -54,7 +55,7 @@
               Descubre los equipos que forman parte de la Liga Diamante. Desde sus uniformes
               y escudos hasta sus plantillas completas y trayectoria histórica en el torneo.
             </p>
-            <a href="#" class="iv-btn">VER MÁS</a>
+             <router-link to="/equipos" class="iv-btn">LEER MÁS</router-link>
           </div>
         </div>
       </div>
@@ -82,7 +83,7 @@
               Consulta las alineaciones de cada equipo para los próximos encuentros.
               Conoce quién lanzará, quiénes bateean y cómo se estructura cada novena.
             </p>
-            <a href="#" class="iv-btn">VER MÁS</a>
+            <router-link to="/alineacion" class="iv-btn">LEER MÁS</router-link>
           </div>
         </div>
       </div>
@@ -104,7 +105,7 @@
               Sigue el desempeño de los mejores peloteros de la liga. Estadísticas,
               promedios al bate, efectividad en el montículo y mucho más de tus favoritos.
             </p>
-            <a href="#" class="iv-btn">VER MÁS</a>
+            <router-link to="/jugadores" class="iv-btn">LEER MÁS</router-link>
           </div>
           <!-- Image -->
           <div class="iv-img-col">
