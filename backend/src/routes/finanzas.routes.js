@@ -6,8 +6,8 @@ const { soloRoles }       = require('../middlewares/roles')
 const finanzas = soloRoles('administrador', 'caja')
 const soloAdmin = soloRoles('administrador')
 
-// Balance — solo administrador
-router.get('/balance', verificarToken, soloAdmin, FinanzasController.balance)
+// Balance — administrador y caja
+router.get('/balance', verificarToken, finanzas, FinanzasController.balance)
 
 // Ingresos
 router.get('/ingresos',    verificarToken, finanzas, FinanzasController.listarIngresos)
