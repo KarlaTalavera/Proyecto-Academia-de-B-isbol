@@ -21,6 +21,8 @@ actions: {
     puedeFinanzas: s => ['administrador', 'caja'].includes(s.rol),
     // admin y dueno gestionan equipos, jugadores y programan partidos
     puedeEditar:   s => ['administrador', 'dueno'].includes(s.rol),
+    // admin, dueno y anotador pueden gestionar sanciones
+    puedeSancionar: s => ['administrador', 'dueno', 'anotador'].includes(s.rol),
     // solo el anotador carga lineup, resultado y estadísticas de un partido
     puedeAnotar:   s => s.rol === 'anotador',
   },

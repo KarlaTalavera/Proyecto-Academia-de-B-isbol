@@ -2,6 +2,7 @@ const bcrypt     = require('bcryptjs')
 const jwt        = require('jsonwebtoken')
 const UsuarioModel = require('../models/usuario.model')
 
+//verificar credenciales
 const AuthController = {
   async login(req, res) {
     const { email, password } = req.body
@@ -22,6 +23,7 @@ const AuthController = {
     res.json({ token, rol: usuario.rol, nombre: usuario.nombre })
   },
 
+  //verificar credenciales en resgistro
   async registro(req, res) {
     const { nombre, email, password } = req.body
     if (!nombre || !email || !password) {
