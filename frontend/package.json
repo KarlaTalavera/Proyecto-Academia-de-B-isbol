@@ -11,9 +11,17 @@
     "@tabler/core": "^1.0.0-beta21",
     "@tabler/icons-vue": "^3.40.0",
     "axios": "^1.7.2",
+    "chart.js": "^4.5.1",
+    "file-saver": "^2.0.5",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.7",
     "pinia": "^2.1.7",
     "vue": "^3.4.29",
-    "vue-router": "^4.3.3"
+    "vue-chart-3": "^4.0.1",
+    "vue-chartjs": "^5.3.3",
+    "vue-router": "^4.3.3",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.5",

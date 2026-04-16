@@ -2,7 +2,12 @@ import { defineStore } from 'pinia'
 import api from '@/services/api'
 
 export const useAuthStore = defineStore('auth', {
-  state: () => ({ user: null, token: null, rol: null }),
+  state: () => ({
+    user:   null,
+    token:  localStorage.getItem('token')  || null,
+    rol:    localStorage.getItem('rol')    || null,
+    nombre: localStorage.getItem('nombre') || null,
+  }),
 actions: {
   async login(email, password) {
     const res = await api.post('/auth/login', { email, password })
@@ -19,8 +24,11 @@ actions: {
     esCaja:        s => s.rol === 'caja',
     esAnotador:    s => s.rol === 'anotador',
     puedeFinanzas: s => ['administrador', 'caja'].includes(s.rol),
+    puedeVerReportes: s => ['administrador', 'dueno', 'caja'].includes(s.rol),
     // admin y dueno gestionan equipos, jugadores y programan partidos
     puedeEditar:   s => ['administrador', 'dueno'].includes(s.rol),
+    // admin, dueno y anotador pueden gestionar sanciones
+    puedeSancionar: s => ['administrador', 'dueno', 'anotador'].includes(s.rol),
     // solo el anotador carga lineup, resultado y estadísticas de un partido
     puedeAnotar:   s => s.rol === 'anotador',
   },

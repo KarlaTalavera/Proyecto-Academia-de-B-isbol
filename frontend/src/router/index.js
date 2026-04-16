@@ -5,7 +5,7 @@ const routes = [
   
   { path: '/login', name: 'Login', component: () => import('@/views/LoginView.vue'), meta: { publico: true } },
 
-  // ── Landing pública ───────────────────────────────────────
+  // Landing pública
   {
     path: '/',
     component: () => import('@/views/landing/LandingLayout.vue'),
@@ -16,10 +16,14 @@ const routes = [
       { path: 'noticias',   name: 'LandingNoticias',   component: () => import('@/views/landing/NoticiasView.vue') },
       { path: 'standing',   name: 'LandingStanding',   component: () => import('@/views/landing/StandingView.vue') },
       { path: 'calendario', name: 'LandingCalendario', component: () => import('@/views/landing/CalendarioView.vue') },
+       { path: 'informacion', name: 'LandingInformacion', component: () => import('@/views/landing/informacion.vue') },
+  { path: 'equipos',     name: 'LandingEquipos',     component: () => import('@/views/landing/equipos.vue') },
+  { path: 'alineacion',  name: 'LandingAlineacion',  component: () => import('@/views/landing/alineacion.vue') },
+  { path: 'jugadores',   name: 'LandingJugadores',   component: () => import('@/views/landing/jugadores.vue') },
     ],
   },
 
-  // ── Zona Fanático (rol: publico) ────────────────────────────
+  // Zona Fanático (rol: publico)
   {
     path: '/fan',
     component: () => import('@/components/FanLayout.vue'),
@@ -43,9 +47,15 @@ const routes = [
       { path: 'equipos',   name: 'Equipos',   component: () => import('@/views/equipos/EquiposView.vue') },
       { path: 'jugadores', name: 'Jugadores', component: () => import('@/views/jugadores/JugadoresView.vue') },
       { path: 'partidos',  name: 'Partidos',  component: () => import('@/views/partidos/PartidosView.vue') },
-      { path: 'reportes',  name: 'Reportes',  component: () => import('@/views/reportes/ReportesView.vue') },
-      { path: 'temporadas', name: 'Temporadas', component: () => import('@/views/temporadas/TemporadasView.vue'), meta: { soloAdmin: true } },
-      { path: 'usuarios',  name: 'Usuarios',  component: () => import('@/views/usuarios/UsuariosView.vue'), meta: { soloAdmin: true } },
+      { path: 'reportes',       name: 'Reportes',       component: () => import('@/views/reportes/ReportesView.vue') },
+      { path: 'reportes/origen-ingresos', name: 'ReporteOrigenIngresos', component: () => import('@/views/reportes/ReporteOrigenIngresosView.vue') },
+      { path: 'reportes/historico-ingresos', name: 'ReporteHistoricoIngresos', component: () => import('@/views/reportes/ReporteHistoricoIngresosView.vue') },
+      { path: 'reportes/efectividad-pitcheo', name: 'ReporteEfectividadPitcheo', component: () => import('@/views/reportes/ReporteEfectividadPitcheoView.vue') },
+      { path: 'sanciones',     name: 'Sanciones',     component: () => import('@/views/sanciones/SancionesView.vue') },
+      { path: 'inscripciones', name: 'Inscripciones', component: () => import('@/views/inscripciones/InscripcionesView.vue') },
+      { path: 'proveedores',   name: 'Proveedores',   component: () => import('@/views/proveedores/ProveedoresView.vue') },
+      { path: 'temporadas',    name: 'Temporadas',    component: () => import('@/views/temporadas/TemporadasView.vue'), meta: { soloAdmin: true } },
+      { path: 'usuarios',      name: 'Usuarios',      component: () => import('@/views/usuarios/UsuariosView.vue'), meta: { soloAdmin: true } },
       {
         path: 'finanzas',
         component: () => import('@/views/finanzas/FinanzasLayout.vue'),
@@ -72,8 +82,15 @@ const router = createRouter({
 router.beforeEach((to) => {
   const auth = useAuthStore()
 
+  // Hereda meta de rutas padre (resuelve rutas hijas sin meta propio)
+  const esPublico       = to.matched.some(r => r.meta.publico)
+  const requiereAuth    = to.matched.some(r => r.meta.requiereAuth)
+  const bloqueaPublico  = to.matched.some(r => r.meta.bloqueaPublico)
+  const soloPublico     = to.matched.some(r => r.meta.soloPublico)
+  const soloAdmin       = to.matched.some(r => r.meta.soloAdmin)
+
   // Sin sesión intentando acceder a zona protegida → landing
-  if (!to.meta.publico && !auth.token) return { name: 'LandingInicio' }
+  if (!esPublico && !auth.token) return { name: 'LandingInicio' }
 
   // Ya autenticado intenta ir al login → redirigir a su zona
   if (auth.token && to.name === 'Login') {
@@ -81,17 +98,17 @@ router.beforeEach((to) => {
   }
 
   // Usuario público intenta acceder a zona administrativa → zona fan
-  if (auth.token && auth.rol === 'publico' && to.meta.bloqueaPublico) {
+  if (auth.token && auth.rol === 'publico' && bloqueaPublico) {
     return { name: 'FanInicio' }
   }
 
   // Usuario no-público intenta acceder a zona fan → dashboard admin
-  if (auth.token && auth.rol !== 'publico' && to.meta.soloPublico) {
+  if (auth.token && auth.rol !== 'publico' && soloPublico) {
     return { name: 'Dashboard' }
   }
 
   // Solo admin puede ver ciertas vistas
-  if (to.meta.soloAdmin && auth.rol !== 'administrador') return { name: 'Dashboard' }
+  if (soloAdmin && auth.rol !== 'administrador') return { name: 'Dashboard' }
 })
 
 export default router

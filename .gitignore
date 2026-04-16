@@ -1,6 +1,4 @@
 node_modules/
-.env
-dist/
 .idea/
 /db.json
 .jekyll-metadata
@@ -44,3 +42,5 @@ sri.json
 # TypeScript
 *.tsbuildinfo
 .tsbuildinfo
+.claude/
+.vscode/

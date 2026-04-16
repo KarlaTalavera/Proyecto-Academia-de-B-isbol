@@ -172,10 +172,19 @@
                     <option>Efectivo</option>
                     <option>Transferencia</option>
                     <option>Divisas</option>
-                    <option>Pago Móvil</option>
+                    <option>Pago Movil</option>
                     <option>Cheque</option>
+                    <option>Zelle</option>
                   </select>
                 </div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Proveedor</label>
+                <select v-model="form.id_proveedor" class="form-select">
+                  <option value="">— Sin proveedor —</option>
+                  <option v-for="p in proveedores" :key="p.id_proveedor" :value="p.id_proveedor">{{ p.nombre_proveedor }} ({{ p.rif }})</option>
+                </select>
               </div>
 
               <input type="hidden" v-model="form.id_temporada" />
@@ -202,6 +211,7 @@ import { useTasaStore } from '@/store/tasa'
 const tasa = useTasaStore()
 
 const egresos  = ref([])
+const proveedores = ref([])
 const busqueda = ref('')
 const cargando = ref(false)
 const modalAbierto = ref(false)
@@ -211,7 +221,7 @@ const errorModal   = ref('')
 const temporadaActiva = ref(1)
 const montoUsd     = ref('')
 
-const form = ref({ id_temporada: 1, nota_gastos: '', gasto: '', fecha_egreso: '', tipo_pago: '' })
+const form = ref({ id_temporada: 1, id_proveedor: '', nota_gastos: '', gasto: '', fecha_egreso: '', tipo_pago: '' })
 
 const egresosFiltrados = computed(() =>
   egresos.value.filter(e => e.nota_gastos.toLowerCase().includes(busqueda.value.toLowerCase()))
@@ -242,11 +252,13 @@ function sincronizarDesdeUsd() {
 async function cargar() {
   cargando.value = true
   try {
-    const [resEgresos, resTemp] = await Promise.all([
+    const [resEgresos, resTemp, resProv] = await Promise.all([
       api.get('/finanzas/egresos'),
       api.get('/temporadas').catch(() => ({ data: [] })),
+      api.get('/proveedores').catch(() => ({ data: [] })),
     ])
     egresos.value = resEgresos.data
+    proveedores.value = resProv.data
     temporadaActiva.value = resTemp.data.find(t => t.activa)?.id_temporada || 1
   } finally {
     cargando.value = false
@@ -266,6 +278,7 @@ function abrirFormulario(egreso = null) {
     editando.value = false
     form.value = {
       id_temporada: temporadaActiva.value,
+      id_proveedor: '',
       nota_gastos: '', gasto: '',
       fecha_egreso: new Date().toISOString().substring(0, 10),
       tipo_pago: '',
