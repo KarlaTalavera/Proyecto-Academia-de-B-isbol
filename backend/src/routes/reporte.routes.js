@@ -2,6 +2,7 @@ const router = require('express').Router()
 const DesempenoModel = require('../models/desempeno.model')
 const { verificarToken } = require('../middlewares/auth')
 const db = require('../config/database')
+const { soloRoles } = require('../middlewares/roles')
 
 //  eta tabla de posiciones extendida
 router.get('/posiciones', verificarToken, async (req, res) => {
@@ -264,6 +265,34 @@ router.get('/origen-ingresos', verificarToken, async (req, res) => {
     total_general: grandTotal,
     categorias: resultado,
   })
+})
+
+router.get('/historico-ingresos', verificarToken, soloRoles('administrador', 'caja'), async (req, res) => {
+  const { temporada, agrupacion = 'mes' } = req.query
+  if (!temporada) return res.status(400).json({ error: 'Parámetro temporada requerido' })
+
+  const formato = agrupacion === 'semana'
+    ? "YEARWEEK(fecha_ingreso, 1)"
+    : "DATE_FORMAT(fecha_ingreso, '%Y-%m')"
+
+  const etiqueta = agrupacion === 'semana'
+    ? "CONCAT('Sem ', WEEK(fecha_ingreso, 1))"
+    : "DATE_FORMAT(fecha_ingreso, '%b %Y')"
+
+  const [rows] = await db.query(
+    `SELECT
+       ${formato}           AS periodo_key,
+       ${etiqueta}          AS periodo,
+       MIN(fecha_ingreso)   AS fecha_inicio,
+       SUM(valor)           AS total,
+       COUNT(*)             AS cantidad
+     FROM ingreso
+     WHERE id_temporada = ?
+     GROUP BY periodo_key, periodo
+     ORDER BY fecha_inicio ASC`,
+    [temporada]
+  )
+  res.json(rows)
 })
 
 module.exports = router

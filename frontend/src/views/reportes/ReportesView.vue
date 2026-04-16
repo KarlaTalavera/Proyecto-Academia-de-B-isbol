@@ -34,6 +34,17 @@
         <IconChartPie :size="15" />
         Origen de Ingresos
       </RouterLink>
+
+       <RouterLink                         
+        v-if="auth.puedeFinanzas"
+        to="/app/reportes/historico-ingresos"
+        class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1"
+        style="border-radius:8px; font-size:0.82rem; text-decoration:none;"
+      >
+        <IconChartLine :size="15" />
+        Histórico de Ingresos
+      </RouterLink>  
+
     </div>
 
     <div v-if="!temporadaId" class="card shadow-sm">
@@ -235,6 +246,7 @@
           </div>
         </div>
       </div>
+      
     </div>
   </div>
 </template>

@@ -49,6 +49,7 @@ const routes = [
       { path: 'partidos',  name: 'Partidos',  component: () => import('@/views/partidos/PartidosView.vue') },
       { path: 'reportes',       name: 'Reportes',       component: () => import('@/views/reportes/ReportesView.vue') },
       { path: 'reportes/origen-ingresos', name: 'ReporteOrigenIngresos', component: () => import('@/views/reportes/ReporteOrigenIngresosView.vue') },
+      { path: 'reportes/historico-ingresos', name: 'ReporteHistoricoIngresos', component: () => import('@/views/reportes/ReporteHistoricoIngresosView.vue') },
       { path: 'sanciones',     name: 'Sanciones',     component: () => import('@/views/sanciones/SancionesView.vue') },
       { path: 'inscripciones', name: 'Inscripciones', component: () => import('@/views/inscripciones/InscripcionesView.vue') },
       { path: 'proveedores',   name: 'Proveedores',   component: () => import('@/views/proveedores/ProveedoresView.vue') },
