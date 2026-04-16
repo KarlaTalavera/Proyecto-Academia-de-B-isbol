@@ -35,7 +35,7 @@
         Origen de Ingresos
       </RouterLink>
 
-       <RouterLink                         
+      <RouterLink
         v-if="auth.puedeFinanzas"
         to="/app/reportes/historico-ingresos"
         class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1"
@@ -43,7 +43,16 @@
       >
         <IconChartLine :size="15" />
         Histórico de Ingresos
-      </RouterLink>  
+      </RouterLink>
+
+      <RouterLink
+        to="/app/reportes/efectividad-pitcheo"
+        class="btn btn-sm btn-outline-warning d-flex align-items-center gap-1"
+        style="border-radius:8px; font-size:0.82rem; text-decoration:none;"
+      >
+        <IconFlame :size="15" />
+        Efectividad de Pitcheo
+      </RouterLink>
 
     </div>
 
@@ -156,6 +165,67 @@
         </div>
       </div>
 
+      <div v-else-if="tab === 'pitcheo'">
+        <div class="card shadow-sm">
+          <div class="card-header d-flex align-items-center gap-2">
+            <IconFlame :size="18" class="text-warning" />
+            <span class="fw-bold">Efectividad de Lanzadores</span>
+            <span class="ms-auto text-muted small">{{ temporadaNombre }}</span>
+            <div class="ms-2 d-flex gap-1">
+              <button class="btn btn-icon btn-sm btn-outline-danger" @click="exportPDF('pitcheo')"><IconFileTypePdf :size="16" /></button>
+              <button class="btn btn-icon btn-sm btn-outline-success" @click="exportExcel('pitcheo')"><IconFileSpreadsheet :size="16" /></button>
+            </div>
+          </div>
+          <div v-if="cargando" class="text-center py-5"><span class="spinner-border spinner-border-sm text-primary"></span></div>
+          <template v-else>
+            <div v-if="!pitchers.length" class="text-center py-5 text-muted">
+              Sin datos de pitcheo para esta temporada
+            </div>
+            <template v-else>
+              <div v-for="grupo in pitchersPorEquipo" :key="grupo.equipo">
+                <div class="px-3 pt-3 pb-1 d-flex align-items-center gap-2">
+                  <div class="team-avatar">{{ grupo.equipo?.charAt(0) }}</div>
+                  <span class="fw-bold" style="font-size:0.9rem;">{{ grupo.equipo }}</span>
+                  <span class="badge bg-blue-lt text-blue ms-1">{{ grupo.jugadores.length }} lanzador(es)</span>
+                </div>
+                <div class="table-responsive">
+                  <table class="table table-vcenter card-table table-sm table-hover">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Lanzador</th>
+                        <th class="text-center">JJ</th>
+                        <th class="text-center">IP</th>
+                        <th class="text-center">ER</th>
+                        <th class="text-center">K</th>
+                        <th class="text-center">W</th>
+                        <th class="text-center">L</th>
+                        <th class="text-center fw-bold">ERA</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="(p, i) in grupo.jugadores" :key="p.id_jugador">
+                        <td class="text-muted small">{{ i + 1 }}</td>
+                        <td><span class="fw-semibold">{{ p.jugador }}</span></td>
+                        <td class="text-center">{{ p.JJ }}</td>
+                        <td class="text-center">{{ p.IP }}</td>
+                        <td class="text-center">{{ p.ER }}</td>
+                        <td class="text-center text-warning fw-bold">{{ p.K }}</td>
+                        <td class="text-center text-success fw-bold">{{ p.W }}</td>
+                        <td class="text-center text-danger">{{ p.L }}</td>
+                        <td class="text-center">
+                          <span class="badge fw-bold" :class="eraClass(p.ERA)">{{ p.ERA ?? '—' }}</span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </template>
+          </template>
+        </div>
+      </div>
+
       <div v-else-if="tab === 'finanzas'">
         <div class="row g-3 mb-4">
           <div class="col-sm-4" v-for="item in summaryFinanzas" :key="item.label">
@@ -255,9 +325,9 @@
 import { ref, computed, onMounted } from 'vue'
 import api from '@/services/api'
 import { useAuthStore } from '@/store/auth'
-import { 
+import {
   IconTrophy, IconChartBar, IconFlame, IconWallet, IconChartDots, IconUsers,
-  IconFileTypePdf, IconFileSpreadsheet, IconChartPie
+  IconFileTypePdf, IconFileSpreadsheet, IconChartPie, IconChartLine
 } from '@tabler/icons-vue'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
@@ -299,12 +369,32 @@ const temporadaNombre = computed(() => {
   return t ? `${t.nombre} (${t.anio})` : ''
 })
 
-const bateoFiltrado = computed(() => 
-  bateadores.value.filter(j => 
+const bateoFiltrado = computed(() =>
+  bateadores.value.filter(j =>
     j.jugador?.toLowerCase().includes(busquedaBateo.value.toLowerCase()) ||
     j.nombre_equipo?.toLowerCase().includes(busquedaBateo.value.toLowerCase())
   )
 )
+
+const pitchersPorEquipo = computed(() => {
+  const mapa = {}
+  for (const p of pitchers.value) {
+    const eq = p.nombre_equipo || 'Sin equipo'
+    if (!mapa[eq]) mapa[eq] = []
+    mapa[eq].push(p)
+  }
+  return Object.entries(mapa)
+    .map(([equipo, jugadores]) => ({ equipo, jugadores: jugadores.sort((a, b) => (a.ERA ?? 99) - (b.ERA ?? 99)) }))
+    .sort((a, b) => a.equipo.localeCompare(b.equipo))
+})
+
+function eraClass(era) {
+  if (era === null || era === undefined) return 'bg-secondary-lt text-secondary'
+  if (era < 2.00) return 'bg-success-lt text-success'
+  if (era < 4.00) return 'bg-blue-lt text-blue'
+  if (era < 6.00) return 'bg-warning-lt text-warning'
+  return 'bg-danger-lt text-danger'
+}
 
 const summaryFinanzas = computed(() => [
   { label: 'Ingresos', value: finanzas.value.total_ingresos, icon: '📥', class: 'bg-success-lt text-success' },
@@ -357,17 +447,43 @@ function exportPDF(tipo) {
   doc.setFontSize(18); doc.text(`Reporte de ${tipo.toUpperCase()} - Liga Diamante`, 14, 15)
   doc.setFontSize(10); doc.text(temporadaNombre.value, 14, 22)
 
-  let headers = [], body = []
-  
   if (tipo === 'posiciones') {
-    headers = [['#', 'Equipo', 'JJ', 'G', 'P', 'PCT', 'DIF']]
-    body = posiciones.value.map((e, i) => [i+1, e.nombre_equipo, e.jugados, e.ganados, e.perdidos, pct(e.ganados, e.jugados), e.carreras_favor - e.carreras_contra])
+    const headers = [['#', 'Equipo', 'JJ', 'G', 'P', 'PCT', 'DIF']]
+    const body = posiciones.value.map((e, i) => [i+1, e.nombre_equipo, e.jugados, e.ganados, e.perdidos, pct(e.ganados, e.jugados), e.carreras_favor - e.carreras_contra])
+    autoTable(doc, { head: headers, body: body, startY: 30, theme: 'striped' })
   } else if (tipo === 'bateo') {
-    headers = [['Jugador', 'Equipo', 'AB', 'H', 'HR', 'RBI', 'AVG']]
-    body = bateoFiltrado.value.map(j => [j.jugador, j.nombre_equipo, j.AB, j.H, j.HR, j.RBI, '.' + avgStr(j.AVG)])
+    const headers = [['Jugador', 'Equipo', 'AB', 'H', 'HR', 'RBI', 'AVG']]
+    const body = bateoFiltrado.value.map(j => [j.jugador, j.nombre_equipo, j.AB, j.H, j.HR, j.RBI, '.' + avgStr(j.AVG)])
+    autoTable(doc, { head: headers, body: body, startY: 30, theme: 'striped' })
+  } else if (tipo === 'pitcheo') {
+    let y = 30
+    for (const grupo of pitchersPorEquipo.value) {
+      doc.setFontSize(10)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(30, 41, 59)
+      doc.text(grupo.equipo, 14, y)
+      y += 4
+      autoTable(doc, {
+        startY: y,
+        head: [['Lanzador', 'JJ', 'IP', 'ER', 'K', 'W', 'L', 'ERA']],
+        body: grupo.jugadores.map(p => [
+          p.jugador, p.JJ, p.IP, p.ER, p.K, p.W, p.L,
+          p.ERA !== null && p.ERA !== undefined ? p.ERA.toFixed(2) : '—',
+        ]),
+        theme: 'striped',
+        headStyles: { fillColor: [30, 41, 59], textColor: 255, fontSize: 8 },
+        styles: { fontSize: 8 },
+        columnStyles: {
+          0: { cellWidth: 55 },
+          1: { halign: 'center' }, 2: { halign: 'center' }, 3: { halign: 'center' },
+          4: { halign: 'center' }, 5: { halign: 'center' }, 6: { halign: 'center' },
+          7: { halign: 'center', fontStyle: 'bold' },
+        },
+      })
+      y = doc.lastAutoTable.finalY + 8
+    }
   }
 
-  autoTable(doc, { head: headers, body: body, startY: 30, theme: 'striped' })
   doc.save(`LigaDiamante_${tipo}.pdf`)
 }
 
@@ -377,6 +493,18 @@ function exportExcel(tipo) {
     data = posiciones.value.map(e => ({ Equipo: e.nombre_equipo, JJ: e.jugados, G: e.ganados, P: e.perdidos, PCT: pct(e.ganados, e.jugados) }))
   } else if (tipo === 'bateo') {
     data = bateoFiltrado.value.map(j => ({ Jugador: j.jugador, Equipo: j.nombre_equipo, AVG: '.' + avgStr(j.AVG), HR: j.HR }))
+  } else if (tipo === 'pitcheo') {
+    for (const grupo of pitchersPorEquipo.value) {
+      data.push({ Lanzador: `EQUIPO: ${grupo.equipo}` })
+      for (const p of grupo.jugadores) {
+        data.push({
+          Lanzador: p.jugador, Equipo: p.nombre_equipo,
+          JJ: p.JJ, IP: p.IP, ER: p.ER, K: p.K, W: p.W, L: p.L,
+          ERA: p.ERA !== null && p.ERA !== undefined ? p.ERA : '',
+        })
+      }
+      data.push({})
+    }
   }
 
   const ws = XLSX.utils.json_to_sheet(data)
