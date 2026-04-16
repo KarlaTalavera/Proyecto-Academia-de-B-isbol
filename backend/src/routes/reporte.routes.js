@@ -3,7 +3,7 @@ const DesempenoModel = require('../models/desempeno.model')
 const { verificarToken } = require('../middlewares/auth')
 const db = require('../config/database')
 
-// ── 1. Tabla de posiciones extendida ────────────────────────
+//  eta tabla de posiciones extendida
 router.get('/posiciones', verificarToken, async (req, res) => {
   const { temporada } = req.query
   if (!temporada) return res.status(400).json({ error: 'Parámetro temporada requerido' })
@@ -38,7 +38,7 @@ router.get('/posiciones', verificarToken, async (req, res) => {
   res.json(rows)
 })
 
-// ── 2. Líderes de bateo ─────────────────────────────────────
+//  Líderes de bateo
 router.get('/promedios-bateo', verificarToken, async (req, res) => {
   const { temporada } = req.query
   if (!temporada) return res.status(400).json({ error: 'Parámetro temporada requerido' })
@@ -46,7 +46,7 @@ router.get('/promedios-bateo', verificarToken, async (req, res) => {
   res.json(data)
 })
 
-// ── 3. Líderes de pitcheo ───────────────────────────────────
+//Líderes de pitcheo
 router.get('/promedios-pitcheo', verificarToken, async (req, res) => {
   const { temporada } = req.query
   if (!temporada) return res.status(400).json({ error: 'Parámetro temporada requerido' })
@@ -78,7 +78,7 @@ router.get('/promedios-pitcheo', verificarToken, async (req, res) => {
   res.json(rows)
 })
 
-// ── 4. Balance financiero por temporada ─────────────────────
+// Balance financiero por temporada
 router.get('/finanzas', verificarToken, async (req, res) => {
   const { temporada } = req.query
   if (!temporada) return res.status(400).json({ error: 'Parámetro temporada requerido' })
@@ -125,7 +125,7 @@ router.get('/finanzas', verificarToken, async (req, res) => {
   })
 })
 
-// ── 5. Rendimiento comparativo por equipo ───────────────────
+//Rendimiento comparativo por equipo
 router.get('/rendimiento-equipos', verificarToken, async (req, res) => {
   const { temporada } = req.query
   if (!temporada) return res.status(400).json({ error: 'Parámetro temporada requerido' })
@@ -156,7 +156,7 @@ router.get('/rendimiento-equipos', verificarToken, async (req, res) => {
   res.json(rows)
 })
 
-// ── 6. Historial de jugadores por temporada ─────────────────
+//historial de jugadores por temporada
 router.get('/historial-jugadores', verificarToken, async (req, res) => {
   const { temporada } = req.query
   if (!temporada) return res.status(400).json({ error: 'Parámetro temporada requerido' })
@@ -178,6 +178,92 @@ router.get('/historial-jugadores', verificarToken, async (req, res) => {
     [temporada]
   )
   res.json(rows)
+})
+
+//Origen de Ingresos
+router.get('/origen-ingresos', verificarToken, async (req, res) => {
+  const { temporada } = req.query
+  if (!temporada) return res.status(400).json({ error: 'Parámetro temporada requerido' })
+
+  // Ingresos generales agrupados por categoría (tabla ingreso)
+  const [porConcepto] = await db.query(
+    `SELECT
+       CASE
+         WHEN LOWER(concepto) LIKE '%patrocin%'                          THEN 'Patrocinios'
+         WHEN LOWER(concepto) LIKE '%boleto%'
+           OR LOWER(concepto) LIKE '%taquill%'
+           OR LOWER(concepto) LIKE '%entrada%'                           THEN 'Taquilla'
+         WHEN LOWER(concepto) LIKE '%inscripci%'
+           OR LOWER(concepto) LIKE '%registro%'
+           OR LOWER(concepto) LIKE '%equipo%'                            THEN 'Inscripciones de Equipos'
+         WHEN LOWER(concepto) LIKE '%concesi%'
+           OR LOWER(concepto) LIKE '%comida%'
+           OR LOWER(concepto) LIKE '%bebida%'
+           OR LOWER(concepto) LIKE '%aliment%'
+           OR LOWER(concepto) LIKE '%venta%'                             THEN 'Concesiones'
+         ELSE 'Otros'
+       END AS categoria,
+       SUM(valor) AS total,
+       COUNT(*)   AS cantidad
+     FROM ingreso
+     WHERE id_temporada = ?
+     GROUP BY categoria
+     ORDER BY total DESC`,
+    [temporada]
+  )
+
+  // ── Inscripciones de equipos (tabla inscripcion) ──
+  const [[inscripciones]] = await db.query(
+    `SELECT
+       COALESCE(SUM(monto_pagado), 0) AS total,
+       COUNT(*) AS cantidad
+     FROM inscripcion
+     WHERE id_temporada = ? AND estado_pago != 'pendiente'`,
+    [temporada]
+  )
+
+  // Inscripciones de Equipos en por concepto, sumar
+  const mapa = {}
+  for (const row of porConcepto) {
+    mapa[row.categoria] = { total: Number(row.total), cantidad: Number(row.cantidad) }
+  }
+
+  const totalInscripciones = Number(inscripciones.total)
+  if (totalInscripciones > 0) {
+    if (mapa['Inscripciones de Equipos']) {
+      mapa['Inscripciones de Equipos'].total    += totalInscripciones
+      mapa['Inscripciones de Equipos'].cantidad += Number(inscripciones.cantidad)
+    } else {
+      mapa['Inscripciones de Equipos'] = {
+        total: totalInscripciones,
+        cantidad: Number(inscripciones.cantidad),
+      }
+    }
+  }
+
+  // Garantizar las 4 categorías principales siempre presentes
+  const CATEGORIAS = ['Patrocinios', 'Taquilla', 'Inscripciones de Equipos', 'Concesiones']
+  for (const cat of CATEGORIAS) {
+    if (!mapa[cat]) mapa[cat] = { total: 0, cantidad: 0 }
+  }
+
+  // convertir a array ordenado por total desc
+  const categorias = Object.entries(mapa)
+    .map(([categoria, { total, cantidad }]) => ({ categoria, total, cantidad }))
+    .sort((a, b) => b.total - a.total)
+
+  const grandTotal = categorias.reduce((s, c) => s + c.total, 0)
+
+  // el porcentaje
+  const resultado = categorias.map(c => ({
+    ...c,
+    porcentaje: grandTotal > 0 ? Number(((c.total / grandTotal) * 100).toFixed(2)) : 0,
+  }))
+
+  res.json({
+    total_general: grandTotal,
+    categorias: resultado,
+  })
 })
 
 module.exports = router
