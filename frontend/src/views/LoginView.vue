@@ -111,7 +111,7 @@ async function iniciarSesion() {
     if (auth.rol === 'publico') {
       router.push({ name: 'FanInicio' })
     } else if (auth.rol === 'caja') {
-    router.push({ name: 'Ingresos' }) 
+    router.push({ name: 'Ingresos' }) // o 'Egresos
   } else {
     router.push({ name: 'Dashboard' })
   }
