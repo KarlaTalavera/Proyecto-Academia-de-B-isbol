@@ -11,13 +11,11 @@ api.interceptors.request.use(config => {
   return config
 })
 
-// Redirige al login si el token expiró (no en la propia ruta de auth)
+// Redirige al login si el token expiró
 api.interceptors.response.use(
   res => res,
   err => {
-    const url = err.config?.url || ''
-    const esRutaAuth = url.includes('/auth/login') || url.includes('/auth/registro')
-    if (!esRutaAuth && (err.response?.status === 401 || err.response?.status === 403)) {
+    if (err.response?.status === 401 || err.response?.status === 403) {
       localStorage.removeItem('token')
       window.location.href = '/login'
     }

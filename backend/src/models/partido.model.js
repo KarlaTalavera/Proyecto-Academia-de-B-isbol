@@ -6,14 +6,11 @@ const PartidoModel = {
       SELECT p.*,
              ec.nombre_equipo AS equipo_casa,
              ev.nombre_equipo AS equipo_visitante,
-             t.nombre         AS temporada,
-             r.carreras_home  AS carreras_casa,
-             r.carreras_visitantes AS carreras_visitante
+             t.nombre         AS temporada
       FROM partido p
       JOIN equipo ec    ON p.id_equipo_casa      = ec.id_equipo
       JOIN equipo ev    ON p.id_equipo_visitante  = ev.id_equipo
-      JOIN temporada t  ON p.id_temporada         = t.id_temporada
-      LEFT JOIN resultado r ON p.id_partido       = r.id_partido`
+      JOIN temporada t  ON p.id_temporada         = t.id_temporada`
     if (id_temporada) {
       const [rows] = await db.query(base + ' WHERE p.id_temporada = ? ORDER BY p.fecha_juego, p.hora_juego', [id_temporada])
       return rows

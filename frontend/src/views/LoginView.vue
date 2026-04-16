@@ -110,11 +110,9 @@ async function iniciarSesion() {
     await auth.login(form.value.email, form.value.password)
     if (auth.rol === 'publico') {
       router.push({ name: 'FanInicio' })
-    } else if (auth.rol === 'caja') {
-    router.push({ name: 'Ingresos' }) // o 'Egresos
-  } else {
-    router.push({ name: 'Dashboard' })
-  }
+    } else {
+      router.push({ name: 'Dashboard' })
+    }
   } catch (e) {
     error.value = e.response?.data?.error || 'Correo o contraseña incorrectos'
   } finally {

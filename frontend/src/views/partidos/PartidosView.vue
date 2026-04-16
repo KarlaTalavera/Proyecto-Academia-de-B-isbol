@@ -288,24 +288,12 @@
                             <input v-model.number="lineupInput[equipo.id].orden_bateo" type="number" min="1" max="20" class="form-control form-control-sm" placeholder="Orden" />
                           </div>
                           <div class="col-7">
-                            <select v-model="lineupInput[equipo.id].posicion_juego" class="form-select form-select-sm">
-                              <option value="">— Posición —</option>
-                              <option value="P">P — Pitcher</option>
-                              <option value="C">C — Catcher</option>
-                              <option value="1B">1B — Primera Base</option>
-                              <option value="2B">2B — Segunda Base</option>
-                              <option value="3B">3B — Tercera Base</option>
-                              <option value="SS">SS — Shortstop</option>
-                              <option value="LF">LF — Left Field</option>
-                              <option value="CF">CF — Center Field</option>
-                              <option value="RF">RF — Right Field</option>
-                              <option value="DH">DH — Designado</option>
-                            </select>
+                            <input v-model="lineupInput[equipo.id].posicion_juego" class="form-control form-control-sm" placeholder="Posición en juego" />
                           </div>
                           <div class="col-12 d-flex align-items-center gap-2 mt-1">
                             <input type="checkbox" v-model="lineupInput[equipo.id].es_titular" class="form-check-input m-0" id="titular" />
                             <label for="titular" style="font-size:0.78rem; cursor:pointer;">Titular</label>
-                            <button class="btn btn-sm btn-primary ms-auto" @click="agregarLineup(equipo.id)" :disabled="!lineupInput[equipo.id].id_jugador || !lineupInput[equipo.id].posicion_juego">
+                            <button class="btn btn-sm btn-primary ms-auto" @click="agregarLineup(equipo.id)" :disabled="!lineupInput[equipo.id].id_jugador">
                               Agregar
                             </button>
                           </div>
@@ -360,6 +348,30 @@
                       <div class="col-4">
                         <label class="form-label" style="font-size:0.78rem;">Innings totales</label>
                         <input v-model.number="resultadoForm.innings_totales" type="number" min="1" max="20" class="form-control form-control-sm" />
+                      </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                      <div class="col-12"><p class="fw-semibold mb-1" style="font-size:0.82rem; color:#64748b;">DECISIONES PITCHER</p></div>
+                      <div class="col-md-4">
+                        <label class="form-label" style="font-size:0.78rem;">Ganador</label>
+                        <select v-model="resultadoForm.id_pitcher_ganador" class="form-select form-select-sm">
+                          <option :value="null">— Ninguno —</option>
+                          <option v-for="j in pitchersEnLineup" :key="j.id_jugador" :value="j.id_jugador">{{ j.nombre }} {{ j.apellido }}</option>
+                        </select>
+                      </div>
+                      <div class="col-md-4">
+                        <label class="form-label" style="font-size:0.78rem;">Perdedor</label>
+                        <select v-model="resultadoForm.id_pitcher_perdedor" class="form-select form-select-sm">
+                          <option :value="null">— Ninguno —</option>
+                          <option v-for="j in pitchersEnLineup" :key="j.id_jugador" :value="j.id_jugador">{{ j.nombre }} {{ j.apellido }}</option>
+                        </select>
+                      </div>
+                      <div class="col-md-4">
+                        <label class="form-label" style="font-size:0.78rem;">Salvador</label>
+                        <select v-model="resultadoForm.id_pitcher_salvador" class="form-select form-select-sm">
+                          <option :value="null">— Ninguno —</option>
+                          <option v-for="j in pitchersEnLineup" :key="j.id_jugador" :value="j.id_jugador">{{ j.nombre }} {{ j.apellido }}</option>
+                        </select>
                       </div>
                     </div>
                     <div class="mb-3">
@@ -438,18 +450,11 @@
                   <!-- Agregar bateador (anotador) -->
                   <div v-if="auth.puedeAnotar" class="mt-2">
                     <div class="d-flex gap-2 align-items-center">
-                      <select v-model="nuevoBateador" class="form-select form-select-sm" style="max-width:280px;">
+                      <select v-model="nuevoBateador" class="form-select form-select-sm" style="max-width:220px;">
                         <option value="">Agregar jugador a bateadores...</option>
-                        <optgroup :label="partidoActual.equipo_casa">
-                          <option v-for="j in jugadoresNoEnBateadores.casa" :key="j.id_jugador" :value="j.id_jugador">
-                            {{ j.nombre }} {{ j.apellido }}
-                          </option>
-                        </optgroup>
-                        <optgroup :label="partidoActual.equipo_visitante">
-                          <option v-for="j in jugadoresNoEnBateadores.visitante" :key="j.id_jugador" :value="j.id_jugador">
-                            {{ j.nombre }} {{ j.apellido }}
-                          </option>
-                        </optgroup>
+                        <option v-for="j in jugadoresNoEnBateadores" :key="j.id_jugador" :value="j.id_jugador">
+                          {{ j.nombre }} {{ j.apellido }} ({{ j.nombre_equipo }})
+                        </option>
                       </select>
                       <button class="btn btn-sm btn-outline-primary" :disabled="!nuevoBateador" @click="agregarBateador">Agregar</button>
                     </div>
@@ -510,18 +515,11 @@
                   <!-- Agregar pitcher (anotador) -->
                   <div v-if="auth.puedeAnotar" class="mt-2">
                     <div class="d-flex gap-2 align-items-center">
-                      <select v-model="nuevoPitcher" class="form-select form-select-sm" style="max-width:280px;">
+                      <select v-model="nuevoPitcher" class="form-select form-select-sm" style="max-width:220px;">
                         <option value="">Agregar pitcher...</option>
-                        <optgroup :label="partidoActual.equipo_casa">
-                          <option v-for="j in pitchersNoEnStats.casa" :key="j.id_jugador" :value="j.id_jugador">
-                            {{ j.nombre }} {{ j.apellido }}
-                          </option>
-                        </optgroup>
-                        <optgroup :label="partidoActual.equipo_visitante">
-                          <option v-for="j in pitchersNoEnStats.visitante" :key="j.id_jugador" :value="j.id_jugador">
-                            {{ j.nombre }} {{ j.apellido }}
-                          </option>
-                        </optgroup>
+                        <option v-for="j in pitchersNoEnStats" :key="j.id_jugador" :value="j.id_jugador">
+                          {{ j.nombre }} {{ j.apellido }} ({{ j.nombre_equipo }})
+                        </option>
                       </select>
                       <button class="btn btn-sm btn-outline-primary" :disabled="!nuevoPitcher" @click="agregarPitcher">Agregar</button>
                     </div>
@@ -583,7 +581,7 @@ const partidoActual = ref(null)
 const tabActual     = ref('info')
 const lineup        = ref([])
 const desempeno     = ref({ bateadores: [], pitchers: [] })
-const resultadoForm = ref({ carreras_home: 0, carreras_visitantes: 0, hits_home: 0, hits_visitantes: 0, errores_home: 0, errores_visitantes: 0, innings_totales: 9, observaciones: '' })
+const resultadoForm = ref({ carreras_home: 0, carreras_visitantes: 0, hits_home: 0, hits_visitantes: 0, errores_home: 0, errores_visitantes: 0, innings_totales: 9, id_pitcher_ganador: null, id_pitcher_perdedor: null, id_pitcher_salvador: null, observaciones: '' })
 const guardandoResultado = ref(false)
 
 // Lineup input por equipo
@@ -654,21 +652,21 @@ function jugadoresPorEquipo(id_equipo) {
   return jugadores.value.filter(j => j.id_equipo === id_equipo && j.activo)
 }
 
+const pitchersEnLineup = computed(() =>
+  jugadores.value.filter(j =>
+    lineup.value.some(l => l.id_jugador === j.id_jugador) &&
+    (j.rol === 'pitcher' || j.rol === 'utilidad')
+  )
+)
+
 const jugadoresNoEnBateadores = computed(() => {
-  if (!partidoActual.value) return { casa: [], visitante: [] }
   const ids = new Set(desempeno.value.bateadores.map(b => b.id_jugador))
-  const casa = jugadores.value.filter(j => !ids.has(j.id_jugador) && j.id_equipo === partidoActual.value.id_equipo_casa)
-  const visitante = jugadores.value.filter(j => !ids.has(j.id_jugador) && j.id_equipo === partidoActual.value.id_equipo_visitante)
-  return { casa, visitante }
+  return jugadores.value.filter(j => !ids.has(j.id_jugador))
 })
 
 const pitchersNoEnStats = computed(() => {
-  if (!partidoActual.value) return { casa: [], visitante: [] }
   const ids = new Set(desempeno.value.pitchers.map(p => p.id_jugador))
-  const esPitcher = j => !ids.has(j.id_jugador) && (j.rol === 'pitcher' || j.rol === 'utilidad')
-  const casa = jugadores.value.filter(j => esPitcher(j) && j.id_equipo === partidoActual.value.id_equipo_casa)
-  const visitante = jugadores.value.filter(j => esPitcher(j) && j.id_equipo === partidoActual.value.id_equipo_visitante)
-  return { casa, visitante }
+  return jugadores.value.filter(j => !ids.has(j.id_jugador) && (j.rol === 'pitcher' || j.rol === 'utilidad'))
 })
 
 async function cargar() {
@@ -712,7 +710,7 @@ async function verDetalle(partido) {
   if (resR.data) {
     Object.assign(resultadoForm.value, resR.data)
   } else {
-    resultadoForm.value = { carreras_home: 0, carreras_visitantes: 0, hits_home: 0, hits_visitantes: 0, errores_home: 0, errores_visitantes: 0, innings_totales: 9, observaciones: '' }
+    resultadoForm.value = { carreras_home: 0, carreras_visitantes: 0, hits_home: 0, hits_visitantes: 0, errores_home: 0, errores_visitantes: 0, innings_totales: 9, id_pitcher_ganador: null, id_pitcher_perdedor: null, id_pitcher_salvador: null, observaciones: '' }
   }
 
   // Guardar resultado en partidoActual para mostrar el marcador
@@ -757,41 +755,12 @@ async function cambiarEstado(estado) {
 async function agregarLineup(id_equipo) {
   const inp = lineupInput.value[id_equipo]
   if (!inp.id_jugador) return
-
-  // Validar posición seleccionada
-  if (!inp.posicion_juego) {
-    alert('Selecciona una posición en juego.'); return
-  }
-
-  // Validar orden al bate positivo
-  if (!inp.orden_bateo || inp.orden_bateo < 1) {
-    alert('El orden al bate debe ser mayor a 0.'); return
-  }
-
-  const lineupDelEquipo = lineupEquipo(id_equipo)
-
-  // Validar orden al bate no duplicado dentro del equipo
-  if (lineupDelEquipo.some(l => l.orden_bateo === inp.orden_bateo)) {
-    alert(`Ya existe un jugador con el orden al bate #${inp.orden_bateo} en este equipo.`); return
-  }
-
-  // Validar posición no duplicada dentro del equipo (excepto DH que podría no tener posición defensiva)
-  if (lineupDelEquipo.some(l => l.posicion_juego === inp.posicion_juego)) {
-    alert(`Ya existe un jugador en la posición ${inp.posicion_juego} en este equipo.`); return
-  }
-
-  // Validar que el jugador no esté ya en el lineup
-  if (lineupDelEquipo.some(l => l.id_jugador === inp.id_jugador)) {
-    alert('Este jugador ya está en el lineup.'); return
-  }
-
   const entry = { id_partido: partidoActual.value.id_partido, id_equipo, ...inp }
   await api.post(`/partidos/${partidoActual.value.id_partido}/lineup`, { entries: [entry] })
+  // Recargar lineup
   const { data } = await api.get(`/partidos/${partidoActual.value.id_partido}/lineup`)
   lineup.value = data
   inp.id_jugador = ''
-  inp.posicion_juego = ''
-  inp.orden_bateo = lineupDelEquipo.length + 2
 }
 
 async function guardarResultado() {

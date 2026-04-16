@@ -1,7 +1,7 @@
 -- ============================================================
--- Liga Diamante - Schema v2 (Normalizada)
--- Correcciones: inscripcion equipo-temporada, proveedor independiente,
---               sanciones, seguimiento, catálogos, timestamps, CHECK constraints
+-- Liga Diamante - Schema v2
+-- Correcciones: nombres snake_case, utf8mb4, tablas faltantes,
+--               campos faltantes, referencias circulares resueltas
 -- ============================================================
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
@@ -17,7 +17,7 @@ CREATE DATABASE `liga_diamante`
 USE `liga_diamante`;
 
 -- ============================================================
--- 1. TEMPORADA
+-- 1. TEMPORADA (reemplaza a "liga" — corrige la referencia circular)
 -- ============================================================
 CREATE TABLE `temporada` (
   `id_temporada`      INT(11)        NOT NULL AUTO_INCREMENT,
@@ -26,13 +26,11 @@ CREATE TABLE `temporada` (
   `categoria`         VARCHAR(100)   NOT NULL,
   `costo_inscripcion` DECIMAL(10,2)  NOT NULL DEFAULT 0.00,
   `activa`            TINYINT(1)     NOT NULL DEFAULT 1,
-  `created_at`        TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at`        TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id_temporada`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================
--- 2. EQUIPO
+-- 2. EQUIPO (agrega responsable, email, telefono)
 -- ============================================================
 CREATE TABLE `equipo` (
   `id_equipo`      INT(11)       NOT NULL AUTO_INCREMENT,
@@ -41,32 +39,11 @@ CREATE TABLE `equipo` (
   `responsable`    VARCHAR(150)  NOT NULL,
   `email`          VARCHAR(100)  DEFAULT NULL,
   `telefono`       VARCHAR(20)   DEFAULT NULL,
-  `created_at`     TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at`     TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id_equipo`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================
--- 3. INSCRIPCION (N:M equipo ↔ temporada)
--- ============================================================
-CREATE TABLE `inscripcion` (
-  `id_inscripcion`  INT(11)     NOT NULL AUTO_INCREMENT,
-  `id_equipo`       INT(11)     NOT NULL,
-  `id_temporada`    INT(11)     NOT NULL,
-  `fecha_inscripcion` DATE      NOT NULL,
-  `estado_pago`     ENUM('pendiente','pagado','rechazado') NOT NULL DEFAULT 'pendiente',
-  `monto_pagado`    DECIMAL(10,2) NOT NULL DEFAULT 0.00,
-  `observaciones`   TEXT        DEFAULT NULL,
-  `created_at`      TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at`      TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id_inscripcion`),
-  UNIQUE KEY `uq_inscripcion_equipo_temporada` (`id_equipo`, `id_temporada`),
-  CONSTRAINT `fk_inscripcion_equipo`    FOREIGN KEY (`id_equipo`)    REFERENCES `equipo`    (`id_equipo`),
-  CONSTRAINT `fk_inscripcion_temporada` FOREIGN KEY (`id_temporada`) REFERENCES `temporada` (`id_temporada`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ============================================================
--- 4. JUGADOR
+-- 3. JUGADOR (corrige "Pocision", agrega cedula y activo)
 -- ============================================================
 CREATE TABLE `jugador` (
   `id_jugador`        INT(11)      NOT NULL AUTO_INCREMENT,
@@ -76,17 +53,15 @@ CREATE TABLE `jugador` (
   `apellido`          VARCHAR(100) NOT NULL,
   `fecha_nacimiento`  DATE         NOT NULL,
   `rol`               ENUM('bateador','pitcher','utilidad') NOT NULL DEFAULT 'bateador',
-  `posicion`          ENUM('P','C','1B','2B','3B','SS','LF','CF','RF','DH','UT') NOT NULL DEFAULT 'UT',
-  `brazo_dominante`   ENUM('derecho','izquierdo','ambidiestro') DEFAULT NULL,
+  `posicion`          VARCHAR(100) NOT NULL,
+  `brazo_dominante`   VARCHAR(20)  DEFAULT NULL,
   `activo`            TINYINT(1)   NOT NULL DEFAULT 1,
-  `created_at`        TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at`        TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id_jugador`),
   CONSTRAINT `fk_jugador_equipo` FOREIGN KEY (`id_equipo`) REFERENCES `equipo` (`id_equipo`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================
--- 5. USUARIO
+-- 4. USUARIO (nuevo — control de acceso por roles)
 -- ============================================================
 CREATE TABLE `usuario` (
   `id_usuario`    INT(11)      NOT NULL AUTO_INCREMENT,
@@ -94,15 +69,17 @@ CREATE TABLE `usuario` (
   `email`         VARCHAR(100) NOT NULL,
   `password_hash` VARCHAR(255) NOT NULL,
   `rol`           ENUM('administrador','dueno','caja','anotador','publico') NOT NULL DEFAULT 'publico',
+  `id_jugador`    INT(11)      DEFAULT NULL,
   `activo`        TINYINT(1)   NOT NULL DEFAULT 1,
   `created_at`    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at`    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id_usuario`),
-  UNIQUE KEY `uq_usuario_email` (`email`)
+  UNIQUE KEY `uq_usuario_email` (`email`),
+  CONSTRAINT `fk_usuario_jugador` FOREIGN KEY (`id_jugador`) REFERENCES `jugador` (`id_jugador`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================
--- 6. PARTIDO
+-- 5. PARTIDO (renombrado de "partido-a-jugar", agrega lugar,
+--    estado e id_temporada; elimina FK circular con liga)
 -- ============================================================
 CREATE TABLE `partido` (
   `id_partido`          INT(11)      NOT NULL AUTO_INCREMENT,
@@ -114,17 +91,14 @@ CREATE TABLE `partido` (
   `lugar`               VARCHAR(200) DEFAULT NULL,
   `innings_programados` INT(11)      NOT NULL DEFAULT 9,
   `estado`              ENUM('programado','en_curso','finalizado','suspendido') NOT NULL DEFAULT 'programado',
-  `created_at`          TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at`          TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id_partido`),
-  CONSTRAINT `chk_equipos_diferentes` CHECK (`id_equipo_casa` <> `id_equipo_visitante`),
   CONSTRAINT `fk_partido_temporada`  FOREIGN KEY (`id_temporada`)        REFERENCES `temporada` (`id_temporada`),
   CONSTRAINT `fk_partido_casa`       FOREIGN KEY (`id_equipo_casa`)      REFERENCES `equipo` (`id_equipo`),
   CONSTRAINT `fk_partido_visitante`  FOREIGN KEY (`id_equipo_visitante`) REFERENCES `equipo` (`id_equipo`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================
--- 7. RESULTADO
+-- 6. RESULTADO (pitcher_salvador ahora nullable)
 -- ============================================================
 CREATE TABLE `resultado` (
   `id_resultado`         INT(11)      NOT NULL AUTO_INCREMENT,
@@ -142,14 +116,14 @@ CREATE TABLE `resultado` (
   `observaciones`        TEXT         DEFAULT NULL,
   PRIMARY KEY (`id_resultado`),
   UNIQUE KEY `uq_resultado_partido` (`id_partido`),
-  CONSTRAINT `fk_resultado_partido`          FOREIGN KEY (`id_partido`)          REFERENCES `partido`  (`id_partido`),
-  CONSTRAINT `fk_resultado_pitcher_ganador`  FOREIGN KEY (`id_pitcher_ganador`)  REFERENCES `jugador`  (`id_jugador`),
-  CONSTRAINT `fk_resultado_pitcher_perdedor` FOREIGN KEY (`id_pitcher_perdedor`) REFERENCES `jugador`  (`id_jugador`),
-  CONSTRAINT `fk_resultado_pitcher_salvador` FOREIGN KEY (`id_pitcher_salvador`) REFERENCES `jugador`  (`id_jugador`)
+  CONSTRAINT `fk_resultado_partido`         FOREIGN KEY (`id_partido`)          REFERENCES `partido`  (`id_partido`),
+  CONSTRAINT `fk_resultado_pitcher_ganador` FOREIGN KEY (`id_pitcher_ganador`)  REFERENCES `jugador`  (`id_jugador`),
+  CONSTRAINT `fk_resultado_pitcher_perdedor`FOREIGN KEY (`id_pitcher_perdedor`) REFERENCES `jugador`  (`id_jugador`),
+  CONSTRAINT `fk_resultado_pitcher_salvador`FOREIGN KEY (`id_pitcher_salvador`) REFERENCES `jugador`  (`id_jugador`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================
--- 8. LINEUP / ALINEACION
+-- 7. LINEUP / ALINEACION (nuevo — requerido por el PDF)
 -- ============================================================
 CREATE TABLE `lineup` (
   `id_lineup`      INT(11)      NOT NULL AUTO_INCREMENT,
@@ -167,7 +141,7 @@ CREATE TABLE `lineup` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================
--- 9. DESEMPENO_BATEADOR
+-- 8. DESEMPENO_BATEADOR (corregidos nombres; referencia a partido)
 -- ============================================================
 CREATE TABLE `desempeno_bateador` (
   `id_desempeno`        INT(11) NOT NULL AUTO_INCREMENT,
@@ -194,7 +168,7 @@ CREATE TABLE `desempeno_bateador` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================
--- 10. DESEMPENO_PITCHER
+-- 9. DESEMPENO_PITCHER (renombrado de desempeño_picher)
 -- ============================================================
 CREATE TABLE `desempeno_pitcher` (
   `id_desempeno_pitcher`  INT(11)       NOT NULL AUTO_INCREMENT,
@@ -220,24 +194,7 @@ CREATE TABLE `desempeno_pitcher` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================
--- 11. PROVEEDOR (independiente de egreso)
--- ============================================================
-CREATE TABLE `proveedor` (
-  `id_proveedor`     INT(11)      NOT NULL AUTO_INCREMENT,
-  `rif`              VARCHAR(75)  NOT NULL,
-  `nombre_proveedor` VARCHAR(125) NOT NULL,
-  `servicio`         VARCHAR(300) NOT NULL,
-  `telefono`         VARCHAR(20)  DEFAULT NULL,
-  `email`            VARCHAR(100) DEFAULT NULL,
-  `activo`           TINYINT(1)   NOT NULL DEFAULT 1,
-  `created_at`       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at`       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id_proveedor`),
-  UNIQUE KEY `uq_proveedor_rif` (`rif`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ============================================================
--- 12. INGRESO
+-- 10. INGRESO (agrega fecha_ingreso e id_temporada; corrige FK)
 -- ============================================================
 CREATE TABLE `ingreso` (
   `id_ingreso`    INT(11)       NOT NULL AUTO_INCREMENT,
@@ -246,65 +203,37 @@ CREATE TABLE `ingreso` (
   `concepto`      VARCHAR(300)  NOT NULL,
   `valor`         DECIMAL(10,2) NOT NULL,
   `fecha_ingreso` DATE          NOT NULL,
-  `tipo_pago`     ENUM('Efectivo','Transferencia','Divisas','Pago Movil','Cheque','Zelle') DEFAULT NULL,
-  `created_at`    TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at`    TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `tipo_pago`     VARCHAR(100)  DEFAULT NULL,
   PRIMARY KEY (`id_ingreso`),
   CONSTRAINT `fk_ingreso_equipo`    FOREIGN KEY (`id_equipo`)    REFERENCES `equipo`    (`id_equipo`),
   CONSTRAINT `fk_ingreso_temporada` FOREIGN KEY (`id_temporada`) REFERENCES `temporada` (`id_temporada`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================
--- 13. EGRESO (ahora referencia a proveedor, no al revés)
+-- 11. EGRESO (corrige "Nota-gatos" → nota_gastos, id_temporada)
 -- ============================================================
 CREATE TABLE `egreso` (
   `id_egreso`     INT(11)       NOT NULL AUTO_INCREMENT,
   `id_temporada`  INT(11)       NOT NULL,
-  `id_proveedor`  INT(11)       DEFAULT NULL,
   `nota_gastos`   VARCHAR(300)  NOT NULL,
   `gasto`         DECIMAL(10,2) NOT NULL,
   `fecha_egreso`  DATE          NOT NULL,
-  `tipo_pago`     ENUM('Efectivo','Transferencia','Divisas','Pago Movil','Cheque','Zelle') DEFAULT NULL,
-  `created_at`    TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at`    TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `tipo_pago`     VARCHAR(150)  DEFAULT NULL,
   PRIMARY KEY (`id_egreso`),
-  CONSTRAINT `fk_egreso_temporada`  FOREIGN KEY (`id_temporada`) REFERENCES `temporada` (`id_temporada`),
-  CONSTRAINT `fk_egreso_proveedor`  FOREIGN KEY (`id_proveedor`) REFERENCES `proveedor` (`id_proveedor`)
+  CONSTRAINT `fk_egreso_temporada` FOREIGN KEY (`id_temporada`) REFERENCES `temporada` (`id_temporada`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================
--- 14. SANCION (nuevo — control disciplinario)
+-- 12. PROVEEDOR (corrige typo "provedor"; sin R.I.F. con punto)
 -- ============================================================
-CREATE TABLE `sancion` (
-  `id_sancion`    INT(11)       NOT NULL AUTO_INCREMENT,
-  `id_temporada`  INT(11)       NOT NULL,
-  `id_jugador`    INT(11)       DEFAULT NULL,
-  `id_equipo`     INT(11)       DEFAULT NULL,
-  `tipo`          ENUM('amonestacion','suspension','multa','expulsion') NOT NULL,
-  `descripcion`   TEXT          NOT NULL,
-  `fecha_sancion` DATE          NOT NULL,
-  `partidos_suspension` INT(11) NOT NULL DEFAULT 0 COMMENT 'Cantidad de partidos suspendido',
-  `monto_multa`   DECIMAL(10,2) NOT NULL DEFAULT 0.00,
-  `estado`        ENUM('activa','cumplida','apelada','revocada') NOT NULL DEFAULT 'activa',
-  `created_at`    TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at`    TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id_sancion`),
-  CONSTRAINT `fk_sancion_temporada` FOREIGN KEY (`id_temporada`) REFERENCES `temporada` (`id_temporada`),
-  CONSTRAINT `fk_sancion_jugador`   FOREIGN KEY (`id_jugador`)   REFERENCES `jugador`   (`id_jugador`),
-  CONSTRAINT `fk_sancion_equipo`    FOREIGN KEY (`id_equipo`)    REFERENCES `equipo`     (`id_equipo`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ============================================================
--- 15. SEGUIMIENTO (fan — seguir equipos)
--- ============================================================
-CREATE TABLE `seguimiento` (
-  `id`          INT(11) NOT NULL AUTO_INCREMENT,
-  `id_usuario`  INT(11) NOT NULL,
-  `id_equipo`   INT(11) NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_seguimiento` (`id_usuario`, `id_equipo`),
-  CONSTRAINT `fk_seguimiento_usuario` FOREIGN KEY (`id_usuario`) REFERENCES `usuario` (`id_usuario`) ON DELETE CASCADE,
-  CONSTRAINT `fk_seguimiento_equipo`  FOREIGN KEY (`id_equipo`)  REFERENCES `equipo`  (`id_equipo`) ON DELETE CASCADE
+CREATE TABLE `proveedor` (
+  `id_proveedor`    INT(11)      NOT NULL AUTO_INCREMENT,
+  `rif`             VARCHAR(75)  NOT NULL,
+  `nombre_proveedor`VARCHAR(125) NOT NULL,
+  `servicio`        VARCHAR(300) NOT NULL,
+  `id_egreso`       INT(11)      NOT NULL,
+  PRIMARY KEY (`id_proveedor`),
+  CONSTRAINT `fk_proveedor_egreso` FOREIGN KEY (`id_egreso`) REFERENCES `egreso` (`id_egreso`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 COMMIT;

@@ -20,78 +20,55 @@
 
             <li class="nav-section-label">Principal</li>
 
-            <li class="nav-item">
-              <RouterLink class="nav-link" :to="{ name: 'Dashboard' }" active-class="">
-                <span class="nav-link-icon"><IconLayoutDashboard :size="20" stroke-width="1.7" /></span>
+            <li class="nav-item" v-if="auth.esAdmin || auth.rol === 'dueno'">
+              <RouterLink class="nav-link" :to="{ name: 'Dashboard' }">
+                <span class="nav-link-icon"><IconLayoutDashboard :size="20" /></span>
                 <span class="nav-link-title">Dashboard</span>
               </RouterLink>
             </li>
 
-            <li class="nav-item">
+            <li class="nav-item" v-if="auth.esAdmin || auth.rol === 'dueno'">
               <RouterLink class="nav-link" :to="{ name: 'Equipos' }">
-                <span class="nav-link-icon"><IconShield :size="20" stroke-width="1.7" /></span>
+                <span class="nav-link-icon"><IconShield :size="20" /></span>
                 <span class="nav-link-title">Equipos</span>
               </RouterLink>
             </li>
 
-            <li class="nav-item">
+            <li class="nav-item" v-if="auth.esAdmin || auth.rol === 'dueno'">
               <RouterLink class="nav-link" :to="{ name: 'Jugadores' }">
-                <span class="nav-link-icon"><IconUsers :size="20" stroke-width="1.7" /></span>
+                <span class="nav-link-icon"><IconUsers :size="20" /></span>
                 <span class="nav-link-title">Jugadores</span>
               </RouterLink>
             </li>
 
-            <li class="nav-item">
+            <li class="nav-item" v-if="auth.esAdmin || auth.rol === 'dueno'">
               <RouterLink class="nav-link" :to="{ name: 'Partidos' }">
-                <span class="nav-link-icon"><IconCalendarEvent :size="20" stroke-width="1.7" /></span>
+                <span class="nav-link-icon"><IconCalendarEvent :size="20" /></span>
                 <span class="nav-link-title">Partidos</span>
               </RouterLink>
             </li>
-
-            <li class="nav-item">
+            
+            <li class="nav-item" v-if="auth.esAdmin || auth.rol === 'dueno'">
               <RouterLink class="nav-link" :to="{ name: 'Reportes' }">
-                <span class="nav-link-icon"><IconChartBar :size="20" stroke-width="1.7" /></span>
+                <span class="nav-link-icon"><IconChartBar :size="20" /></span>
                 <span class="nav-link-title">Reportes</span>
               </RouterLink>
             </li>
 
-            <li class="nav-item">
-              <RouterLink class="nav-link" :to="{ name: 'Sanciones' }">
-                <span class="nav-link-icon"><IconGavel :size="20" stroke-width="1.7" /></span>
-                <span class="nav-link-title">Sanciones</span>
-              </RouterLink>
-            </li>
-
-            <!-- Administración -->
-            <template v-if="auth.puedeFinanzas || auth.esAdmin">
-              <li class="nav-section-label mt-1">Administración</li>
-            </template>
-
+            <!-- Finanzas: solo caja y admin -->
             <template v-if="auth.puedeFinanzas">
-              <li class="nav-item">
+              <li class="nav-section-label mt-1">Administración</li>
+              <li class="nav-item" v-if="auth.esAdmin || auth.rol === 'dueno' || auth.rol === 'caja'">
                 <RouterLink class="nav-link" :to="{ name: 'Ingresos' }">
-                  <span class="nav-link-icon"><IconWallet :size="20" stroke-width="1.7" /></span>
+                  <span class="nav-link-icon"><IconWallet :size="20" /></span>
                   <span class="nav-link-title">Finanzas</span>
                 </RouterLink>
               </li>
-              <li class="nav-item">
-                <RouterLink class="nav-link" :to="{ name: 'Proveedores' }">
-                  <span class="nav-link-icon"><IconBuildingStore :size="20" stroke-width="1.7" /></span>
-                  <span class="nav-link-title">Proveedores</span>
-                </RouterLink>
-              </li>
             </template>
 
-            <template v-if="auth.puedeEditar">
-              <li class="nav-item">
-                <RouterLink class="nav-link" :to="{ name: 'Inscripciones' }">
-                  <span class="nav-link-icon"><IconClipboardCheck :size="20" stroke-width="1.7" /></span>
-                  <span class="nav-link-title">Inscripciones</span>
-                </RouterLink>
-              </li>
-            </template>
-
+            <!-- Usuarios y Temporadas: solo administrador -->
             <template v-if="auth.esAdmin">
+              <li v-if="!auth.puedeFinanzas" class="nav-section-label mt-1">Administración</li>
               <li class="nav-item">
                 <RouterLink class="nav-link" :to="{ name: 'Temporadas' }">
                   <span class="nav-link-icon"><IconCalendar :size="20" stroke-width="1.7" /></span>
@@ -159,7 +136,6 @@ import { useAuthStore } from '@/store/auth'
 import {
   IconLayoutDashboard, IconShield, IconUsers, IconCalendarEvent,
   IconWallet, IconChartBar, IconLogout, IconUsersGroup, IconCalendar,
-  IconGavel, IconBuildingStore, IconClipboardCheck,
 } from '@tabler/icons-vue'
 
 const auth   = useAuthStore()
