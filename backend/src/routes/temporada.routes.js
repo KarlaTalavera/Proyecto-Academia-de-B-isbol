@@ -51,7 +51,23 @@ router.put('/:id', verificarToken, soloAdmin, async (req, res) => {
 
 // Eliminar temporada
 router.delete('/:id', verificarToken, soloAdmin, async (req, res) => {
-  const [result] = await db.query('DELETE FROM temporada WHERE id_temporada = ?', [req.params.id])
+  const id = req.params.id
+
+  // Verificar dependencias antes de borrar
+  const [[{ inscripciones }]] = await db.query('SELECT COUNT(*) AS inscripciones FROM inscripcion WHERE id_temporada = ?', [id])
+  const [[{ partidos }]]      = await db.query('SELECT COUNT(*) AS partidos      FROM partido      WHERE id_temporada = ?', [id])
+  const [[{ ingresos }]]      = await db.query('SELECT COUNT(*) AS ingresos      FROM ingreso      WHERE id_temporada = ?', [id])
+  const [[{ egresos }]]       = await db.query('SELECT COUNT(*) AS egresos       FROM egreso       WHERE id_temporada = ?', [id])
+  const [[{ sanciones }]]     = await db.query('SELECT COUNT(*) AS sanciones     FROM sancion      WHERE id_temporada = ?', [id])
+
+  const total = inscripciones + partidos + ingresos + egresos + sanciones
+  if (total > 0) {
+    return res.status(409).json({
+      error: 'No se puede eliminar la temporada porque tiene datos registrados (inscripciones, partidos, finanzas o sanciones). Elimina esos registros primero.',
+    })
+  }
+
+  const [result] = await db.query('DELETE FROM temporada WHERE id_temporada = ?', [id])
   if (!result.affectedRows) return res.status(404).json({ error: 'Temporada no encontrada' })
   res.json({ ok: true })
 })

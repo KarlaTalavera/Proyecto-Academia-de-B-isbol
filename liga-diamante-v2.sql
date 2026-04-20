@@ -1,7 +1,6 @@
 -- ============================================================
 -- Liga Diamante - Schema v2 (Normalizada)
--- Correcciones: inscripcion equipo-temporada, proveedor independiente,
---               sanciones, seguimiento, catálogos, timestamps, CHECK constraints
+-- Incluye: esquema completo + fotos/logos + taquilla + noticias
 -- ============================================================
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
@@ -41,6 +40,7 @@ CREATE TABLE `equipo` (
   `responsable`    VARCHAR(150)  NOT NULL,
   `email`          VARCHAR(100)  DEFAULT NULL,
   `telefono`       VARCHAR(20)   DEFAULT NULL,
+  `logo_url`       VARCHAR(255)  DEFAULT NULL COMMENT 'URL relativa del logo/escudo del equipo',
   `created_at`     TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at`     TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id_equipo`)
@@ -78,6 +78,7 @@ CREATE TABLE `jugador` (
   `rol`               ENUM('bateador','pitcher','utilidad') NOT NULL DEFAULT 'bateador',
   `posicion`          ENUM('P','C','1B','2B','3B','SS','LF','CF','RF','DH','UT') NOT NULL DEFAULT 'UT',
   `brazo_dominante`   ENUM('derecho','izquierdo','ambidiestro') DEFAULT NULL,
+  `foto_url`          VARCHAR(255) DEFAULT NULL COMMENT 'URL relativa de la foto del jugador',
   `activo`            TINYINT(1)   NOT NULL DEFAULT 1,
   `created_at`        TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at`        TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -112,8 +113,13 @@ CREATE TABLE `partido` (
   `fecha_juego`         DATE         NOT NULL,
   `hora_juego`          TIME         NOT NULL,
   `lugar`               VARCHAR(200) DEFAULT NULL,
-  `innings_programados` INT(11)      NOT NULL DEFAULT 9,
+  `innings_programados` INT(11)       NOT NULL DEFAULT 9,
   `estado`              ENUM('programado','en_curso','finalizado','suspendido') NOT NULL DEFAULT 'programado',
+  `boletos_general`     INT(11)       NOT NULL DEFAULT 0,
+  `precio_general`      DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+  `boletos_vip`         INT(11)       NOT NULL DEFAULT 0,
+  `precio_vip`          DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+  `capacidad_estadio`   INT(11)       NOT NULL DEFAULT 0,
   `created_at`          TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at`          TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id_partido`),
@@ -305,6 +311,20 @@ CREATE TABLE `seguimiento` (
   UNIQUE KEY `uq_seguimiento` (`id_usuario`, `id_equipo`),
   CONSTRAINT `fk_seguimiento_usuario` FOREIGN KEY (`id_usuario`) REFERENCES `usuario` (`id_usuario`) ON DELETE CASCADE,
   CONSTRAINT `fk_seguimiento_equipo`  FOREIGN KEY (`id_equipo`)  REFERENCES `equipo`  (`id_equipo`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================
+-- 16. NOTICIA (contenido de la página pública)
+-- ============================================================
+CREATE TABLE `noticia` (
+  `id_noticia`        INT(11)      NOT NULL AUTO_INCREMENT,
+  `titulo`            VARCHAR(255) NOT NULL,
+  `contenido`         TEXT         DEFAULT NULL,
+  `foto_url`          VARCHAR(500) DEFAULT NULL,
+  `fecha_publicacion` DATE         DEFAULT NULL,
+  `activa`            TINYINT(1)   NOT NULL DEFAULT 1,
+  `created_at`        TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id_noticia`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 COMMIT;

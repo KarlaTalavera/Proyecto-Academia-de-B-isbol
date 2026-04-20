@@ -7,7 +7,7 @@
 
         <!-- Brand -->
         <RouterLink class="navbar-brand d-flex align-items-center gap-2 text-decoration-none" to="/">
-          <div class="brand-logo">⚾</div>
+          <img src="/logos/logorepor.png" class="brand-logo" alt="Liga Diamante" />
           <div class="brand-text">
             <strong>Liga Diamante</strong>
             <span>Sistema de Gestión</span>
@@ -48,7 +48,7 @@
               </RouterLink>
             </li>
 
-            <li class="nav-item">
+            <li v-if="auth.puedeVerReportes" class="nav-item">
               <RouterLink class="nav-link" :to="{ name: 'Reportes' }">
                 <span class="nav-link-icon"><IconChartBar :size="20" stroke-width="1.7" /></span>
                 <span class="nav-link-title">Reportes</span>
@@ -87,6 +87,12 @@
                 <RouterLink class="nav-link" :to="{ name: 'Inscripciones' }">
                   <span class="nav-link-icon"><IconClipboardCheck :size="20" stroke-width="1.7" /></span>
                   <span class="nav-link-title">Inscripciones</span>
+                </RouterLink>
+              </li>
+              <li class="nav-item">
+                <RouterLink class="nav-link" :to="{ name: 'NoticiasAdmin' }">
+                  <span class="nav-link-icon"><IconNews :size="20" stroke-width="1.7" /></span>
+                  <span class="nav-link-title">Noticias</span>
                 </RouterLink>
               </li>
             </template>
@@ -159,7 +165,7 @@ import { useAuthStore } from '@/store/auth'
 import {
   IconLayoutDashboard, IconShield, IconUsers, IconCalendarEvent,
   IconWallet, IconChartBar, IconLogout, IconUsersGroup, IconCalendar,
-  IconGavel, IconBuildingStore, IconClipboardCheck,
+  IconGavel, IconBuildingStore, IconClipboardCheck, IconNews,
 } from '@tabler/icons-vue'
 
 const auth   = useAuthStore()

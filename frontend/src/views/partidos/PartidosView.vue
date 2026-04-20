@@ -161,7 +161,7 @@
               <div class="row">
                 <div class="col-md-6 mb-3">
                   <label class="form-label fw-semibold" style="font-size:0.82rem;">Fecha <span class="text-danger">*</span></label>
-                  <input v-model="nuevoForm.fecha_juego" type="date" class="form-control" required />
+                  <input v-model="nuevoForm.fecha_juego" type="date" class="form-control" :min="hoyStr" required />
                 </div>
                 <div class="col-md-6 mb-3">
                   <label class="form-label fw-semibold" style="font-size:0.82rem;">Hora <span class="text-danger">*</span></label>
@@ -219,19 +219,45 @@
 
               <!-- TAB: INFO / ESTADO -->
               <div v-if="tabActual === 'info'">
-                <div v-if="auth.puedeEditar" class="card p-3">
-                  <p class="fw-semibold mb-3" style="font-size:0.85rem;">Cambiar estado del partido</p>
-                  <div class="d-flex gap-2 flex-wrap">
-                    <button v-for="e in estados" :key="e.valor"
-                      class="btn btn-sm"
-                      :class="partidoActual.estado === e.valor ? 'btn-primary' : 'btn-ghost-secondary'"
-                      @click="cambiarEstado(e.valor)">
-                      {{ e.label }}
-                    </button>
+                <div v-if="auth.puedeGestionarPartido" class="d-flex flex-column gap-3">
+
+                  <!-- Cambiar estado -->
+                  <div class="card p-3">
+                    <p class="fw-semibold mb-3" style="font-size:0.85rem;">Cambiar estado del partido</p>
+                    <div class="d-flex gap-2 flex-wrap">
+                      <button v-for="e in estados" :key="e.valor"
+                        class="btn btn-sm"
+                        :class="partidoActual.estado === e.valor ? 'btn-primary' : 'btn-ghost-secondary'"
+                        @click="cambiarEstado(e.valor)">
+                        {{ e.label }}
+                      </button>
+                    </div>
                   </div>
+
+                  <!-- Reprogramar (no aplica a finalizados) -->
+                  <div v-if="partidoActual.estado !== 'finalizado'" class="card p-3">
+                    <p class="fw-semibold mb-3" style="font-size:0.85rem;">Reprogramar partido</p>
+                    <div class="d-flex flex-wrap gap-2 align-items-end">
+                      <div>
+                        <label class="form-label mb-1" style="font-size:0.78rem;">Nueva fecha</label>
+                        <input v-model="reprogramarForm.fecha" type="date" class="form-control form-control-sm" :min="hoyStr" />
+                      </div>
+                      <div>
+                        <label class="form-label mb-1" style="font-size:0.78rem;">Nueva hora</label>
+                        <input v-model="reprogramarForm.hora" type="time" class="form-control form-control-sm" />
+                      </div>
+                      <button
+                        class="btn btn-sm btn-outline-primary"
+                        :disabled="!reprogramarForm.fecha || !reprogramarForm.hora"
+                        @click="reprogramarPartido">
+                        <IconCalendarEvent :size="14" class="me-1" /> Reprogramar
+                      </button>
+                    </div>
+                  </div>
+
                 </div>
                 <div v-else class="text-muted text-center py-3" style="font-size:0.85rem;">
-                  Solo administradores y dueños pueden cambiar el estado.
+                  No tienes permisos para modificar este partido.
                 </div>
               </div>
 
@@ -395,10 +421,10 @@
                       <thead>
                         <tr>
                           <th>Jugador</th><th>Equipo</th>
-                          <th title="Turnos al bate">AB</th><th title="Hits">H</th><th title="Dobles">2B</th>
-                          <th title="Triples">3B</th><th title="Jonrones">HR</th><th title="Carreras">R</th>
-                          <th title="Carreras Impulsadas">RBI</th><th title="Bases por Bolas">BB</th>
-                          <th title="Ponches">SO</th>
+                          <th><AbrevTooltip ab="AB" /></th><th><AbrevTooltip ab="H" /></th><th><AbrevTooltip ab="2B" /></th>
+                          <th><AbrevTooltip ab="3B" /></th><th><AbrevTooltip ab="HR" /></th><th><AbrevTooltip ab="R" /></th>
+                          <th><AbrevTooltip ab="RBI" /></th><th><AbrevTooltip ab="BB" /></th>
+                          <th><AbrevTooltip ab="SO" /></th>
                           <th v-if="auth.puedeAnotar">Acción</th>
                         </tr>
                       </thead>
@@ -464,10 +490,10 @@
                       <thead>
                         <tr>
                           <th>Pitcher</th><th>Equipo</th>
-                          <th title="Innings Pitcheados">IP</th><th title="Hits Permitidos">H</th>
-                          <th title="Carreras Permitidas">R</th><th title="Carreras Limpias">ER</th>
-                          <th title="Jonrones Permitidos">HR</th><th title="Bases por Bolas">BB</th>
-                          <th title="Ponches">SO</th><th>G</th><th>P</th><th>S</th>
+                          <th><AbrevTooltip ab="IP" /></th><th><AbrevTooltip ab="H" /></th>
+                          <th><AbrevTooltip ab="R" /></th><th><AbrevTooltip ab="ER" /></th>
+                          <th><AbrevTooltip ab="HR" /></th><th><AbrevTooltip ab="BB" /></th>
+                          <th><AbrevTooltip ab="SO" /></th><th><AbrevTooltip ab="G" /></th><th><AbrevTooltip ab="P" /></th><th><AbrevTooltip ab="S" /></th>
                           <th v-if="auth.puedeAnotar">Acción</th>
                         </tr>
                       </thead>
@@ -543,6 +569,7 @@
 import { ref, computed, watch, onMounted, markRaw } from 'vue'
 import api from '@/services/api'
 import { useAuthStore } from '@/store/auth'
+import AbrevTooltip from '@/components/AbrevTooltip.vue'
 import {
   IconPlus, IconCalendarEvent, IconEye, IconTrash, IconMapPin,
   IconLock, IconDeviceFloppy, IconInfoCircle, IconListDetails,
@@ -581,6 +608,8 @@ const nuevoForm    = ref({ id_temporada: '', id_equipo_casa: '', id_equipo_visit
 const modalDetalle  = ref(false)
 const partidoActual = ref(null)
 const tabActual     = ref('info')
+const reprogramarForm = ref({ fecha: '', hora: '' })
+const hoyStr = computed(() => new Date().toISOString().slice(0, 10))
 const lineup        = ref([])
 const desempeno     = ref({ bateadores: [], pitchers: [] })
 const resultadoForm = ref({ carreras_home: 0, carreras_visitantes: 0, hits_home: 0, hits_visitantes: 0, errores_home: 0, errores_visitantes: 0, innings_totales: 9, observaciones: '' })
@@ -693,6 +722,7 @@ async function verDetalle(partido) {
   modalDetalle.value = true
   nuevoBateador.value = ''
   nuevoPitcher.value  = ''
+  reprogramarForm.value = { fecha: partido.fecha_juego?.substring(0, 10) || '', hora: partido.hora_juego?.substring(0, 5) || '' }
 
   // Inicializar lineupInput por equipo
   lineupInput.value = {
@@ -728,7 +758,13 @@ function abrirNuevoPartido() {
 async function crearPartido() {
   if (nuevoForm.value.id_equipo_casa && nuevoForm.value.id_equipo_visitante &&
       nuevoForm.value.id_equipo_casa === nuevoForm.value.id_equipo_visitante) {
-    alert('El equipo local y visitante no pueden ser el mismo'); return
+    errorNuevo.value = 'El equipo local y visitante no pueden ser el mismo'; return
+  }
+  if (nuevoForm.value.fecha_juego && nuevoForm.value.hora_juego) {
+    const fechaHora = new Date(`${nuevoForm.value.fecha_juego}T${nuevoForm.value.hora_juego}`)
+    if (fechaHora <= new Date()) {
+      errorNuevo.value = 'Solo se pueden programar partidos en fechas futuras'; return
+    }
   }
   guardandoNuevo.value = true
   errorNuevo.value = ''
@@ -752,6 +788,27 @@ async function cambiarEstado(estado) {
   partidoActual.value.estado = estado
   const idx = partidos.value.findIndex(p => p.id_partido === partidoActual.value.id_partido)
   if (idx >= 0) partidos.value[idx].estado = estado
+}
+
+async function reprogramarPartido() {
+  const { fecha, hora } = reprogramarForm.value
+  if (new Date(`${fecha}T${hora}`) <= new Date()) {
+    alert('La nueva fecha y hora debe ser futura'); return
+  }
+  try {
+    await api.patch(`/partidos/${partidoActual.value.id_partido}/reprogramar`, { fecha_juego: fecha, hora_juego: hora })
+    partidoActual.value.fecha_juego = fecha
+    partidoActual.value.hora_juego  = hora + ':00'
+    partidoActual.value.estado = 'programado'
+    const idx = partidos.value.findIndex(p => p.id_partido === partidoActual.value.id_partido)
+    if (idx >= 0) {
+      partidos.value[idx].fecha_juego = fecha
+      partidos.value[idx].hora_juego  = hora + ':00'
+      partidos.value[idx].estado = 'programado'
+    }
+  } catch (e) {
+    alert(e.response?.data?.error || 'Error al reprogramar el partido')
+  }
 }
 
 async function agregarLineup(id_equipo) {

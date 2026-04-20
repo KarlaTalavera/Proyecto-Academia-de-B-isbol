@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="page-header d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <div v-if="!props.embedded" class="page-header d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
       <div>
         <h2 class="page-title">Reporte de Origen de Ingresos</h2>
         <p class="page-subtitle">Mix comercial — distribución de fuentes de ingreso por temporada</p>
@@ -13,6 +13,21 @@
           </option>
         </select>
       </div>
+    </div>
+
+    <!-- Barra de filtros por fecha (siempre visible cuando hay temporada) -->
+    <div v-if="temporadaId" class="d-flex align-items-center gap-3 mb-3 flex-wrap">
+      <div class="d-flex align-items-center gap-2" style="font-size:0.84rem; color:#475569;">
+        <span class="fw-semibold">Fecha inicio:</span>
+        <input v-model="fechaDesde" type="date" class="form-control form-control-sm" style="max-width:145px;" @change="onFechaChange" />
+      </div>
+      <div class="d-flex align-items-center gap-2" style="font-size:0.84rem; color:#475569;">
+        <span class="fw-semibold">Fecha fin:</span>
+        <input v-model="fechaHasta" type="date" class="form-control form-control-sm" style="max-width:145px;" @change="onFechaChange" />
+      </div>
+      <button v-if="fechaDesde || fechaHasta" class="btn btn-sm btn-ghost-secondary" @click="fechaDesde=''; fechaHasta=''; onFechaChange()">
+        Limpiar fechas
+      </button>
     </div>
 
     <div v-if="!temporadaId" class="card">
@@ -78,7 +93,36 @@
           <div class="card-body">
             <div class="row g-4 align-items-start">
               <div v-if="mostrarGrafico" class="col-md-5 text-center">
-                <canvas ref="canvasPie" width="300" height="300" style="max-width:300px; margin: 0 auto;"></canvas>
+                <div ref="pieContainer" style="position:relative; display:inline-block;">
+                  <canvas
+                    ref="canvasPie"
+                    width="300" height="300"
+                    style="max-width:300px; display:block; cursor:pointer;"
+                    @mousemove="onPieMouseMove"
+                    @mouseleave="onPieMouseLeave"
+                  ></canvas>
+                  <div v-if="pieTooltip.visible" :style="`
+                    position:absolute;
+                    left:${pieTooltip.x}px;
+                    top:${pieTooltip.y}px;
+                    background:#1e293b;
+                    color:#fff;
+                    border-radius:8px;
+                    padding:8px 12px;
+                    font-size:0.78rem;
+                    pointer-events:none;
+                    white-space:nowrap;
+                    box-shadow:0 4px 16px rgba(0,0,0,0.25);
+                    z-index:10;
+                    transform:translate(-50%,-100%);
+                  `">
+                    <div class="fw-bold mb-1" :style="`color:${colorPorCategoria(pieTooltip.cat.categoria)}`">
+                      {{ pieTooltip.cat.categoria }}
+                    </div>
+                    <div>{{ formatBs(pieTooltip.cat.total) }}</div>
+                    <div style="color:#94a3b8;">{{ pieTooltip.cat.porcentaje }}% del total</div>
+                  </div>
+                </div>
                 <div class="mt-3 d-flex flex-wrap justify-content-center gap-2">
                   <div
                     v-for="cat in datos.categorias"
@@ -172,7 +216,11 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick, onMounted } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, defineProps } from 'vue'
+const props = defineProps({
+  embedded:     { type: Boolean, default: false },
+  temporadaSel: { type: [String, Number], default: '' },
+})
 import api from '@/services/api'
 import {
   IconChartPie, IconFileTypePdf, IconFileSpreadsheet,
@@ -186,10 +234,16 @@ import { saveAs } from 'file-saver'
 // Reactividad y estado local
 const temporadas    = ref([])
 const temporadaId   = ref('')
+watch(() => props.temporadaSel, val => { if (props.embedded && val) { temporadaId.value = val; cargar() } }, { immediate: false })
 const cargando      = ref(false)
 const mostrarGrafico = ref(true)
 const datos          = ref({ total_general: 0, categorias: [] })
-const canvasPie     = ref(null)
+const canvasPie      = ref(null)
+const pieContainer   = ref(null)
+const hoveredSlice   = ref(-1)
+const pieTooltip     = ref({ visible: false, x: 0, y: 0, cat: null })
+const fechaDesde     = ref('')
+const fechaHasta     = ref('')
 
 const fechaGeneracion = computed(() =>
   new Date().toLocaleString('es-VE', { dateStyle: 'medium', timeStyle: 'short' })
@@ -244,26 +298,33 @@ async function cargar() {
   if (!temporadaId.value) return
   cargando.value = true
   try {
-    const { data } = await api.get('/reportes/origen-ingresos', {
-      params: { temporada: temporadaId.value },
-    })
+    const params = { temporada: temporadaId.value }
+    if (fechaDesde.value) params.fechaDesde = fechaDesde.value
+    if (fechaHasta.value) params.fechaHasta = fechaHasta.value
+    const { data } = await api.get('/reportes/origen-ingresos', { params })
     datos.value = data
-    if (mostrarGrafico.value) {
-      await nextTick()
-      dibujarPie()
-    }
   } finally {
     cargando.value = false
   }
+  // Dibujar DESPUÉS de que cargando=false actualice el DOM (canvas visible)
+  if (mostrarGrafico.value && datos.value.categorias?.length) {
+    await nextTick()
+    requestAnimationFrame(() => dibujarPie())
+  }
+}
+
+function onFechaChange() {
+  if (temporadaId.value) cargar()
 }
 
 async function cargarTemporadas() {
   const { data } = await api.get('/temporadas')
   temporadas.value = data
-  const activa = data.find(t => t.activa)
-  if (activa) {
-    temporadaId.value = activa.id_temporada
-    cargar()
+  if (props.embedded && props.temporadaSel) {
+    temporadaId.value = props.temporadaSel; cargar()
+  } else {
+    const activa = data.find(t => t.activa)
+    if (activa) { temporadaId.value = activa.id_temporada; cargar() }
   }
 }
 
@@ -278,40 +339,56 @@ function dibujarPie() {
   const H = canvas.height
   const cx = W / 2
   const cy = H / 2
-  const r  = Math.min(W, H) / 2 - 20
+  const rBase = Math.min(W, H) / 2 - 22
 
   ctx.clearRect(0, 0, W, H)
 
-  const total = cats.reduce((s, c) => s + c.total, 0)
-  let angulo  = -Math.PI / 2
+  const total  = cats.reduce((s, c) => s + c.total, 0)
+  let angulo   = -Math.PI / 2
 
-  for (const cat of cats) {
-    const slice = (cat.total / total) * 2 * Math.PI
+  cats.forEach((cat, idx) => {
+    const slice     = (cat.total / total) * 2 * Math.PI
+    const isHovered = idx === hoveredSlice.value
+    const r         = isHovered ? rBase + 10 : rBase
+    const midAngle  = angulo + slice / 2
+
+    // Offset de explosión al hacer hover
+    const ox = isHovered ? Math.cos(midAngle) * 6 : 0
+    const oy = isHovered ? Math.sin(midAngle) * 6 : 0
+
+    if (isHovered) {
+      ctx.shadowColor = colorPorCategoria(cat.categoria)
+      ctx.shadowBlur  = 14
+    } else {
+      ctx.shadowBlur = 0
+    }
+
     ctx.beginPath()
-    ctx.moveTo(cx, cy)
-    ctx.arc(cx, cy, r, angulo, angulo + slice)
+    ctx.moveTo(cx + ox, cy + oy)
+    ctx.arc(cx + ox, cy + oy, r, angulo, angulo + slice)
     ctx.closePath()
     ctx.fillStyle = colorPorCategoria(cat.categoria)
     ctx.fill()
+
+    ctx.shadowBlur  = 0
     ctx.strokeStyle = '#fff'
-    ctx.lineWidth = 2
+    ctx.lineWidth   = isHovered ? 3 : 2
     ctx.stroke()
 
-    if (slice > 0.3) {
-      const midAngle = angulo + slice / 2
-      const lx = cx + (r * 0.65) * Math.cos(midAngle)
-      const ly = cy + (r * 0.65) * Math.sin(midAngle)
-      ctx.fillStyle = '#fff'
-      ctx.font      = 'bold 11px sans-serif'
-      ctx.textAlign = 'center'
+    if (slice > 0.25) {
+      const lx = cx + ox + (r * 0.65) * Math.cos(midAngle)
+      const ly = cy + oy + (r * 0.65) * Math.sin(midAngle)
+      ctx.fillStyle    = '#fff'
+      ctx.font         = isHovered ? 'bold 13px sans-serif' : 'bold 11px sans-serif'
+      ctx.textAlign    = 'center'
       ctx.textBaseline = 'middle'
       ctx.fillText(cat.porcentaje + '%', lx, ly)
     }
     angulo += slice
-  }
+  })
 
   ctx.beginPath()
-  ctx.arc(cx, cy, r * 0.45, 0, 2 * Math.PI)
+  ctx.arc(cx, cy, rBase * 0.45, 0, 2 * Math.PI)
   ctx.fillStyle = '#fff'
   ctx.fill()
 
@@ -328,10 +405,68 @@ function dibujarPie() {
   ctx.fillText(totalStr + ' Bs.', cx, cy + 9)
 }
 
+function onPieMouseMove(e) {
+  const canvas = canvasPie.value
+  if (!canvas) return
+
+  const rect   = canvas.getBoundingClientRect()
+  const scaleX = canvas.width  / rect.width
+  const scaleY = canvas.height / rect.height
+  const mx     = (e.clientX - rect.left) * scaleX
+  const my     = (e.clientY - rect.top)  * scaleY
+
+  const cats   = datos.value.categorias?.filter(c => c.total > 0) || []
+  const W = canvas.width, H = canvas.height
+  const cx = W / 2, cy = H / 2
+  const rBase = Math.min(W, H) / 2 - 22
+  const dx = mx - cx, dy = my - cy
+  const dist = Math.sqrt(dx * dx + dy * dy)
+
+  let newHovered = -1
+  if (dist >= rBase * 0.45 && dist <= rBase + 12) {
+    const total = cats.reduce((s, c) => s + c.total, 0)
+    let mouseAngle = Math.atan2(dy, dx)
+    if (mouseAngle < -Math.PI / 2) mouseAngle += 2 * Math.PI
+
+    let startAngle = -Math.PI / 2
+    for (let i = 0; i < cats.length; i++) {
+      const slice = (cats[i].total / total) * 2 * Math.PI
+      if (mouseAngle >= startAngle && mouseAngle < startAngle + slice) {
+        newHovered = i
+        break
+      }
+      startAngle += slice
+    }
+  }
+
+  if (newHovered !== hoveredSlice.value) {
+    hoveredSlice.value = newHovered
+    dibujarPie()
+  }
+
+  if (newHovered >= 0 && pieContainer.value) {
+    const containerRect = pieContainer.value.getBoundingClientRect()
+    pieTooltip.value = {
+      visible: true,
+      x: e.clientX - containerRect.left,
+      y: e.clientY - containerRect.top - 8,
+      cat: cats[newHovered],
+    }
+  } else {
+    pieTooltip.value = { ...pieTooltip.value, visible: false }
+  }
+}
+
+function onPieMouseLeave() {
+  hoveredSlice.value = -1
+  pieTooltip.value   = { ...pieTooltip.value, visible: false }
+  dibujarPie()
+}
+
 watch(mostrarGrafico, async (val) => {
   if (val && datos.value.categorias?.length) {
     await nextTick()
-    dibujarPie()
+    requestAnimationFrame(() => dibujarPie())
   }
 })
 
@@ -352,6 +487,7 @@ async function cargarLogoBase64(url) {
 }
 
 async function exportPDF() {
+  try {
   const doc   = new jsPDF({ orientation: 'portrait' })
   const pageW = doc.internal.pageSize.getWidth()
   const pageH = doc.internal.pageSize.getHeight()
@@ -379,29 +515,29 @@ async function exportPDF() {
 
   // ── Logo (esquina superior izquierda) ────────────────────
   if (logoBase64) {
-    doc.addImage(logoBase64, 'PNG', 8, 6, 26, 26)
+    doc.addImage(logoBase64, 'PNG', 8, 6, 32, 28)
   } else {
     doc.setDrawColor(255, 255, 255)
     doc.setLineWidth(0.5)
-    doc.roundedRect(8, 6, 26, 26, 3, 3, 'S')
+    doc.roundedRect(8, 6, 32, 28, 3, 3, 'S')
     doc.setTextColor(255, 255, 255)
     doc.setFontSize(6.5)
     doc.setFont('helvetica', 'normal')
-    doc.text('LOGO', 21, 17, { align: 'center' })
-    doc.text('LIGA', 21, 23, { align: 'center' })
+    doc.text('LOGO', 24, 17, { align: 'center' })
+    doc.text('LIGA', 24, 23, { align: 'center' })
   }
 
   // ── Nombre del sistema ───────────────────────────────────
   doc.setTextColor(255, 255, 255)
   doc.setFontSize(17)
   doc.setFont('helvetica', 'bold')
-  doc.text('Liga Diamante', 40, 16)
+  doc.text('Liga Diamante', 46, 16)
 
   // ── Nombre del reporte ───────────────────────────────────
   doc.setFontSize(9.5)
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(148, 163, 184)
-  doc.text('Reporte de Origen de Ingresos — Mix Comercial', 40, 24)
+  doc.text('Reporte de Origen de Ingresos — Mix Comercial', 46, 24)
 
   // ── Temporada (derecha) ──────────────────────────────────
   doc.setFontSize(9)
@@ -432,8 +568,40 @@ async function exportPDF() {
   cursorY += 18
 
   // ── Gráfico de pastel (si está activado) ─────────────────
-  if (mostrarGrafico.value && canvasPie.value) {
-    const imgData = canvasPie.value.toDataURL('image/png')
+  const cats = datos.value.categorias?.filter(c => c.total > 0) || []
+  if (mostrarGrafico.value && cats.length) {
+    // Dibujar en canvas offscreen de tamaño fijo para garantizar imagen válida
+    const oc  = document.createElement('canvas')
+    oc.width  = 300
+    oc.height = 300
+    const octx = oc.getContext('2d')
+    const W = 300, H = 300, cx = 150, cy = 150, r = 125
+    octx.clearRect(0, 0, W, H)
+    const total = cats.reduce((s, c) => s + c.total, 0)
+    let ang = -Math.PI / 2
+    for (const cat of cats) {
+      const slice = (cat.total / total) * 2 * Math.PI
+      octx.beginPath(); octx.moveTo(cx, cy)
+      octx.arc(cx, cy, r, ang, ang + slice); octx.closePath()
+      octx.fillStyle = colorPorCategoria(cat.categoria); octx.fill()
+      octx.strokeStyle = '#fff'; octx.lineWidth = 2; octx.stroke()
+      if (slice > 0.3) {
+        const mid = ang + slice / 2
+        octx.fillStyle = '#fff'; octx.font = 'bold 12px sans-serif'
+        octx.textAlign = 'center'; octx.textBaseline = 'middle'
+        octx.fillText(cat.porcentaje + '%', cx + r * 0.65 * Math.cos(mid), cy + r * 0.65 * Math.sin(mid))
+      }
+      ang += slice
+    }
+    octx.beginPath(); octx.arc(cx, cy, r * 0.45, 0, 2 * Math.PI)
+    octx.fillStyle = '#fff'; octx.fill()
+    octx.fillStyle = '#1e293b'; octx.font = 'bold 12px sans-serif'
+    octx.textAlign = 'center'; octx.textBaseline = 'middle'
+    octx.fillText('TOTAL', cx, cy - 10)
+    octx.font = 'bold 14px sans-serif'; octx.fillStyle = '#10b981'
+    const totalStr = new Intl.NumberFormat('es-VE', { notation: 'compact', maximumFractionDigits: 1 }).format(datos.value.total_general || 0)
+    octx.fillText(totalStr + ' Bs.', cx, cy + 10)
+    const imgData = oc.toDataURL('image/png')
     const imgSize = 72
     doc.setFontSize(9)
     doc.setFont('helvetica', 'bold')
@@ -503,6 +671,10 @@ async function exportPDF() {
   }
 
   doc.save(`reporte-origen-ingresos-${temporadaNombre.value.replace(/\s+/g, '_')}.pdf`)
+  } catch (err) {
+    console.error('Error al exportar PDF de origen de ingresos:', err)
+    alert('No se pudo generar el PDF. Asegúrate de que los datos estén cargados.')
+  }
 }
 
 function exportExcel() {

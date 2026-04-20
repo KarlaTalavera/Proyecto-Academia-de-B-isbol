@@ -41,8 +41,7 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- ── TEMPORADAS ──────────────────────────────────────────────
 INSERT INTO temporada (nombre, anio, categoria, costo_inscripcion, activa) VALUES
 ('Temporada Apertura 2025', 2025, 'Semi-profesional', 5000.00, 0),
-('Temporada Clausura 2026', 2026, 'Semi-profesional', 5500.00, 1),
-('Temporada Juvenil 2025',  2025, 'Juvenil',          2000.00, 0);
+('Temporada Clausura 2026', 2026, 'Semi-profesional', 5500.00, 1);
 
 -- ── EQUIPOS (8 equipos) ─────────────────────────────────────
 INSERT INTO equipo (nombre_equipo, entrenador, responsable, email, telefono) VALUES
@@ -363,6 +362,26 @@ INSERT INTO proveedor (rif, nombre_proveedor, servicio, telefono, email) VALUES
 
 -- ── INGRESOS ────────────────────────────────────────────────
 INSERT INTO ingreso (id_equipo, id_temporada, concepto, valor, fecha_ingreso, tipo_pago) VALUES
+-- Apertura 2025: inscripciones de los 6 equipos participantes
+-- Enero 2025: inscripciones
+(1, 1, 'Inscripción Leones - Apertura 2025',         5000.00, '2025-01-10', 'Transferencia'),
+(2, 1, 'Inscripción Tigres - Apertura 2025',         5000.00, '2025-01-12', 'Transferencia'),
+(3, 1, 'Inscripción Águilas - Apertura 2025',        5000.00, '2025-01-14', 'Efectivo'),
+(4, 1, 'Inscripción Navegantes - Apertura 2025',     5000.00, '2025-01-15', 'Transferencia'),
+(5, 1, 'Inscripción Caribes - Apertura 2025',        5000.00, '2025-01-16', 'Pago Movil'),
+(6, 1, 'Inscripción Bravos - Apertura 2025',         5000.00, '2025-01-18', 'Efectivo'),
+-- Enero 2025: patrocinios
+(1, 1, 'Patrocinio Leones — Empresa Polar',          7500.00, '2025-01-25', 'Transferencia'),
+(3, 1, 'Patrocinio Águilas — Grupo Digitel',         6000.00, '2025-01-28', 'Transferencia'),
+-- Febrero 2025: taquilla jornadas
+(1, 1, 'Venta de boletos Jornada 1',                 4800.00, '2025-02-08', 'Efectivo'),
+(2, 1, 'Venta de boletos Jornada 2',                 5200.00, '2025-02-22', 'Efectivo'),
+-- Febrero 2025: otros ingresos
+(1, 1, 'Venta de programas y merchandising',          950.00, '2025-02-09', 'Efectivo'),
+(3, 1, 'Alquiler de palcos Jornada 1',               1800.00, '2025-02-08', 'Transferencia'),
+-- Marzo 2025: donación y cierre
+(5, 1, 'Donación Gobernación del Estado',            8000.00, '2025-03-05', 'Cheque'),
+(6, 1, 'Patrocinio adicional — Cervecería Regional', 4500.00, '2025-03-10', 'Transferencia'),
 (1, 2, 'Inscripción Leones - Clausura 2026',     5500.00, '2026-02-01', 'Transferencia'),
 (2, 2, 'Inscripción Tigres - Clausura 2026',     5500.00, '2026-02-02', 'Transferencia'),
 (3, 2, 'Inscripción Águilas - Clausura 2026',    5500.00, '2026-02-03', 'Efectivo'),
@@ -397,6 +416,117 @@ INSERT INTO sancion (id_temporada, id_jugador, id_equipo, tipo, descripcion, fec
 (2, 33, 4, 'suspension',   'Agresión verbal a jugador contrario',              '2026-03-21', 3, 500.00,  'activa'),
 (2, 52, 6, 'amonestacion', 'Demora excesiva en posición de bateo',             '2026-03-22', 0, 0.00,    'cumplida');
 
+-- ── PARTIDOS APERTURA 2025 (6 finalizados, IDs 16-21) ───────
+INSERT INTO partido (id_temporada, id_equipo_casa, id_equipo_visitante, fecha_juego, hora_juego, lugar, estado) VALUES
+(1, 1, 2, '2025-02-08', '14:00:00', 'Estadio Universitario',         'finalizado'),
+(1, 3, 4, '2025-02-08', '16:00:00', 'Estadio La Ceiba',              'finalizado'),
+(1, 5, 6, '2025-02-09', '14:00:00', 'Estadio Alfonso López',         'finalizado'),
+(1, 2, 3, '2025-02-22', '14:00:00', 'Estadio José Pérez Colmenares', 'finalizado'),
+(1, 4, 5, '2025-02-22', '16:00:00', 'Estadio Universitario',         'finalizado'),
+(1, 6, 1, '2025-02-23', '14:00:00', 'Estadio Luis Aparicio',         'finalizado');
+
+-- ── RESULTADOS APERTURA 2025 ─────────────────────────────────
+INSERT INTO resultado (id_partido, carreras_home, carreras_visitantes, hits_home, hits_visitantes, errores_home, errores_visitantes, innings_totales, id_pitcher_ganador, id_pitcher_perdedor) VALUES
+(16, 7, 2, 12,  5, 0, 2, 9,  1, 11),  -- Leones 7 - Tigres 2
+(17, 4, 3,  8,  6, 1, 1, 9, 21, 31),  -- Águilas 4 - Navegantes 3
+(18, 3, 6,  7, 10, 2, 0, 9, 51, 41),  -- Caribes 3 - Bravos 6
+(19, 3, 8,  6, 13, 2, 0, 9, 21, 11),  -- Tigres 3 - Águilas 8
+(20, 6, 2,  9,  4, 0, 1, 9, 31, 41),  -- Navegantes 6 - Caribes 2
+(21, 4, 5, 10,  7, 1, 0, 9,  1, 51);  -- Bravos 4 - Leones 5
+
+-- ── DESEMPEÑO BATEADORES APERTURA 2025 ──────────────────────
+INSERT INTO desempeno_bateador (id_jugador, id_partido, id_equipo, turnos_al_bate, hits, dobles, triples, jonrones, carreras, carreras_impulsadas) VALUES
+-- P16: Leones(1) 7 - Tigres(2) 2
+(2,  16, 1, 4, 3, 1, 0, 1, 2, 3), (3,  16, 1, 4, 2, 0, 0, 0, 1, 1),
+(4,  16, 1, 4, 2, 1, 0, 0, 2, 1), (5,  16, 1, 3, 2, 0, 0, 0, 1, 1),
+(6,  16, 1, 4, 1, 0, 0, 0, 1, 0), (8,  16, 1, 4, 1, 0, 1, 0, 0, 1),
+(12, 16, 2, 4, 1, 0, 0, 0, 1, 0), (13, 16, 2, 4, 1, 0, 0, 0, 0, 1),
+(14, 16, 2, 3, 1, 0, 0, 0, 1, 0), (15, 16, 2, 4, 1, 1, 0, 0, 0, 1),
+(16, 16, 2, 4, 0, 0, 0, 0, 0, 0),
+-- P17: Águilas(3) 4 - Navegantes(4) 3
+(22, 17, 3, 4, 2, 1, 0, 0, 2, 1), (23, 17, 3, 4, 2, 0, 0, 0, 1, 2),
+(24, 17, 3, 4, 1, 0, 0, 0, 0, 1), (25, 17, 3, 3, 1, 0, 0, 0, 1, 0),
+(32, 17, 4, 4, 2, 0, 0, 0, 1, 1), (33, 17, 4, 4, 1, 1, 0, 0, 1, 1),
+(34, 17, 4, 3, 1, 0, 0, 0, 1, 0), (35, 17, 4, 4, 1, 0, 0, 0, 0, 1),
+-- P18: Caribes(5) 3 - Bravos(6) 6
+(42, 18, 5, 4, 1, 0, 0, 0, 1, 1), (43, 18, 5, 4, 1, 1, 0, 0, 1, 1),
+(44, 18, 5, 4, 2, 0, 0, 0, 0, 1), (45, 18, 5, 3, 1, 0, 0, 0, 1, 0),
+(52, 18, 6, 4, 3, 1, 0, 1, 3, 3), (53, 18, 6, 4, 2, 0, 0, 0, 1, 2),
+(54, 18, 6, 4, 2, 1, 0, 0, 1, 1), (55, 18, 6, 3, 1, 0, 0, 0, 1, 0),
+-- P19: Tigres(2) 3 - Águilas(3) 8
+(12, 19, 2, 4, 1, 0, 0, 0, 1, 1), (13, 19, 2, 4, 1, 1, 0, 0, 1, 1),
+(14, 19, 2, 3, 1, 0, 0, 0, 1, 1), (15, 19, 2, 4, 0, 0, 0, 0, 0, 0),
+(22, 19, 3, 5, 3, 1, 0, 1, 3, 3), (23, 19, 3, 4, 2, 0, 1, 0, 2, 2),
+(24, 19, 3, 4, 2, 1, 0, 0, 1, 2), (25, 19, 3, 4, 1, 0, 0, 0, 1, 0),
+(26, 19, 3, 4, 2, 0, 0, 0, 1, 1),
+-- P20: Navegantes(4) 6 - Caribes(5) 2
+(32, 20, 4, 4, 3, 1, 0, 1, 2, 3), (33, 20, 4, 4, 2, 0, 0, 0, 2, 1),
+(34, 20, 4, 4, 1, 1, 0, 0, 1, 1), (35, 20, 4, 3, 1, 0, 0, 0, 1, 1),
+(42, 20, 5, 4, 1, 0, 0, 0, 1, 1), (43, 20, 5, 4, 1, 0, 0, 0, 0, 1),
+(44, 20, 5, 3, 1, 1, 0, 0, 1, 0), (45, 20, 5, 3, 0, 0, 0, 0, 0, 0),
+-- P21: Bravos(6) 4 - Leones(1) 5
+(52, 21, 6, 4, 2, 0, 0, 1, 2, 2), (53, 21, 6, 4, 2, 1, 0, 0, 1, 1),
+(54, 21, 6, 4, 1, 0, 0, 0, 0, 1), (55, 21, 6, 3, 1, 0, 0, 0, 1, 0),
+(2,  21, 1, 4, 2, 1, 0, 0, 2, 2), (3,  21, 1, 4, 2, 0, 0, 0, 1, 1),
+(4,  21, 1, 4, 1, 0, 0, 0, 1, 1), (5,  21, 1, 3, 2, 1, 0, 0, 1, 2);
+
+-- ── DESEMPEÑO PITCHERS APERTURA 2025 ────────────────────────
+INSERT INTO desempeno_pitcher (id_jugador, id_partido, id_equipo, innings_pitcheados, hits_permitidos, carreras_permitidas, carreras_limpias, bases_por_bolas, ponches, ganado, perdido) VALUES
+(1,  16, 1, 9.0,  5, 2, 2, 1, 10, 1, 0),
+(11, 16, 2, 5.0,  8, 5, 4, 3,  4, 0, 1),
+(20, 16, 2, 4.0,  4, 2, 2, 1,  2, 0, 0),
+(21, 17, 3, 8.0,  5, 2, 2, 2,  9, 1, 0),
+(30, 17, 3, 1.0,  1, 1, 1, 0,  1, 0, 0),
+(31, 17, 4, 6.0,  6, 3, 3, 2,  5, 0, 1),
+(40, 17, 4, 3.0,  2, 1, 1, 1,  2, 0, 0),
+(41, 18, 5, 5.0,  8, 5, 4, 3,  3, 0, 1),
+(50, 18, 5, 4.0,  2, 1, 1, 1,  2, 0, 0),
+(51, 18, 6, 9.0,  7, 3, 3, 2,  7, 1, 0),
+(11, 19, 2, 4.0,  9, 6, 5, 3,  2, 0, 0),
+(20, 19, 2, 5.0,  4, 2, 2, 1,  3, 0, 1),
+(21, 19, 3, 9.0,  6, 3, 3, 2,  8, 1, 0),
+(31, 20, 4, 9.0,  4, 2, 2, 1,  9, 1, 0),
+(41, 20, 5, 6.0,  7, 5, 4, 3,  4, 0, 1),
+(50, 20, 5, 3.0,  2, 1, 1, 0,  2, 0, 0),
+(51, 21, 6, 6.0,  5, 4, 3, 2,  4, 0, 1),
+(60, 21, 6, 3.0,  2, 1, 1, 1,  2, 0, 0),
+(1,  21, 1, 9.0,  7, 4, 4, 2,  8, 1, 0);
+
+-- ── EGRESOS APERTURA 2025 ────────────────────────────────────
+INSERT INTO egreso (id_temporada, id_proveedor, nota_gastos, gasto, fecha_egreso, tipo_pago) VALUES
+(1, 2, 'Arbitraje Jornada 1 (3 partidos)',    6000.00, '2025-02-08', 'Transferencia'),
+(1, 2, 'Arbitraje Jornada 2 (3 partidos)',    6000.00, '2025-02-22', 'Transferencia'),
+(1, 3, 'Transporte Jornada 1',                2500.00, '2025-02-07', 'Pago Movil'),
+(1, 3, 'Transporte Jornada 2',                2500.00, '2025-02-21', 'Pago Movil'),
+(1, 1, 'Compra de pelotas (30 unidades)',     2700.00, '2025-01-30', 'Efectivo'),
+(1, 6, 'Servicios médicos Jornada 1',         2000.00, '2025-02-08', 'Transferencia'),
+(1, 6, 'Servicios médicos Jornada 2',         2000.00, '2025-02-22', 'Transferencia');
+
 -- ── SEGUIMIENTO (fan sigue a Leones, Águilas y Caribes) ─────
 INSERT INTO seguimiento (id_usuario, id_equipo) VALUES
 (5, 1), (5, 3), (5, 5);
+
+-- ── TAQUILLA (partidos 1-12 finalizados) ────────────────────
+-- capacidad_estadio, boletos_general, precio_general, boletos_vip, precio_vip
+-- Estadio Universitario  cap=12000 | La Ceiba cap=8000 | Alfonso López cap=9000
+-- Antonio Herrera cap=7000 | José Pérez Colmenares cap=10000
+-- Luis Aparicio cap=15000 | Litoral cap=6000
+UPDATE partido SET capacidad_estadio=12000, boletos_general=7200, precio_general=20.00, boletos_vip=480,  precio_vip=65.00 WHERE id_partido=1;  -- Leones vs Tigres (Estadio Universitario)
+UPDATE partido SET capacidad_estadio= 8000, boletos_general=4400, precio_general=18.00, boletos_vip=310,  precio_vip=55.00 WHERE id_partido=2;  -- Águilas vs Navegantes (La Ceiba)
+UPDATE partido SET capacidad_estadio= 9000, boletos_general=5100, precio_general=18.00, boletos_vip=350,  precio_vip=55.00 WHERE id_partido=3;  -- Caribes vs Bravos (Alfonso López)
+UPDATE partido SET capacidad_estadio= 7000, boletos_general=3800, precio_general=15.00, boletos_vip=260,  precio_vip=50.00 WHERE id_partido=4;  -- Cardenales vs Tiburones (Antonio Herrera)
+UPDATE partido SET capacidad_estadio=10000, boletos_general=5800, precio_general=18.00, boletos_vip=420,  precio_vip=60.00 WHERE id_partido=5;  -- Tigres vs Águilas (José Pérez Colmenares)
+UPDATE partido SET capacidad_estadio=12000, boletos_general=7600, precio_general=20.00, boletos_vip=510,  precio_vip=65.00 WHERE id_partido=6;  -- Navegantes vs Caribes (Estadio Universitario)
+UPDATE partido SET capacidad_estadio=15000, boletos_general=9200, precio_general=22.00, boletos_vip=680,  precio_vip=70.00 WHERE id_partido=7;  -- Bravos vs Cardenales (Luis Aparicio)
+UPDATE partido SET capacidad_estadio= 6000, boletos_general=3100, precio_general=15.00, boletos_vip=200,  precio_vip=48.00 WHERE id_partido=8;  -- Tiburones vs Leones (Litoral)
+UPDATE partido SET capacidad_estadio=12000, boletos_general=8400, precio_general=20.00, boletos_vip=590,  precio_vip=65.00 WHERE id_partido=9;  -- Leones vs Águilas (Estadio Universitario)
+UPDATE partido SET capacidad_estadio=10000, boletos_general=6200, precio_general=18.00, boletos_vip=450,  precio_vip=60.00 WHERE id_partido=10; -- Tigres vs Navegantes (José Pérez Colmenares)
+UPDATE partido SET capacidad_estadio= 9000, boletos_general=5500, precio_general=18.00, boletos_vip=380,  precio_vip=55.00 WHERE id_partido=11; -- Caribes vs Cardenales (Alfonso López)
+UPDATE partido SET capacidad_estadio=15000, boletos_general=10500,precio_general=22.00, boletos_vip=820,  precio_vip=70.00 WHERE id_partido=12; -- Bravos vs Tiburones (Luis Aparicio)
+-- Taquilla Apertura 2025 (partidos 16-21)
+UPDATE partido SET capacidad_estadio=12000, boletos_general=8200, precio_general=18.00, boletos_vip=520, precio_vip=55.00 WHERE id_partido=16; -- Leones vs Tigres
+UPDATE partido SET capacidad_estadio= 8000, boletos_general=4600, precio_general=15.00, boletos_vip=300, precio_vip=48.00 WHERE id_partido=17; -- Águilas vs Navegantes
+UPDATE partido SET capacidad_estadio= 9000, boletos_general=5000, precio_general=15.00, boletos_vip=320, precio_vip=48.00 WHERE id_partido=18; -- Caribes vs Bravos
+UPDATE partido SET capacidad_estadio=10000, boletos_general=5500, precio_general=18.00, boletos_vip=380, precio_vip=55.00 WHERE id_partido=19; -- Tigres vs Águilas
+UPDATE partido SET capacidad_estadio=12000, boletos_general=7000, precio_general=18.00, boletos_vip=460, precio_vip=55.00 WHERE id_partido=20; -- Navegantes vs Caribes
+UPDATE partido SET capacidad_estadio=15000, boletos_general=8800, precio_general=20.00, boletos_vip=600, precio_vip=60.00 WHERE id_partido=21; -- Bravos vs Leones

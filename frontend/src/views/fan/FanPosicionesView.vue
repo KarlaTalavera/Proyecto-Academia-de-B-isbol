@@ -29,10 +29,10 @@
             <tr>
               <th style="width:40px;">#</th>
               <th>Equipo</th>
-              <th class="text-center">JJ</th>
-              <th class="text-center" style="color:#22c55e;">G</th>
-              <th class="text-center" style="color:#ef4444;">P</th>
-              <th class="text-center">%</th>
+              <th class="text-center"><AbrevTooltip ab="JJ" /></th>
+              <th class="text-center" style="color:#22c55e;"><AbrevTooltip ab="G" /></th>
+              <th class="text-center" style="color:#ef4444;"><AbrevTooltip ab="P" /></th>
+              <th class="text-center"><AbrevTooltip ab="%" /></th>
             </tr>
           </thead>
           <tbody>
@@ -76,6 +76,7 @@
 import { ref, onMounted } from 'vue'
 import api from '@/services/api'
 import { IconTrophy, IconHeart } from '@tabler/icons-vue'
+import AbrevTooltip from '@/components/AbrevTooltip.vue'
 
 const cargando    = ref(true)
 const temporadas  = ref([])

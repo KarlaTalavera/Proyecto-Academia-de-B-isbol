@@ -130,11 +130,11 @@
                   <tr>
                     <th>Jugador</th>
                     <th>Equipo</th>
-                    <th class="text-center">AB</th>
-                    <th class="text-center">H</th>
-                    <th class="text-center">HR</th>
-                    <th class="text-center">RBI</th>
-                    <th class="text-center fw-bold">AVG</th>
+                    <th class="text-center"><AbrevTooltip ab="AB" /></th>
+                    <th class="text-center"><AbrevTooltip ab="H" /></th>
+                    <th class="text-center"><AbrevTooltip ab="HR" /></th>
+                    <th class="text-center"><AbrevTooltip ab="RBI" /></th>
+                    <th class="text-center fw-bold"><AbrevTooltip ab="AVG" /></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -171,6 +171,7 @@ import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import api from '@/services/api'
 import { IconHeart, IconCalendarEvent, IconTrophy, IconChartBar } from '@tabler/icons-vue'
+import AbrevTooltip from '@/components/AbrevTooltip.vue'
 
 const cargando        = ref(true)
 const misEquipos      = ref([])

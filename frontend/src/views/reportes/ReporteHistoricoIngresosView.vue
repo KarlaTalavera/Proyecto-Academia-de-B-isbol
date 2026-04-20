@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="page-header d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <div v-if="!props.embedded" class="page-header d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
       <div>
         <h2 class="page-title">Reporte Histórico de Ingresos</h2>
         <p class="page-subtitle">Evolución de ingresos a lo largo de la temporada</p>
@@ -17,6 +17,21 @@
           </option>
         </select>
       </div>
+    </div>
+
+    <!-- Barra de filtros por fecha -->
+    <div v-if="temporadaId" class="d-flex align-items-center gap-3 mb-3 flex-wrap">
+      <div class="d-flex align-items-center gap-2" style="font-size:0.84rem; color:#475569;">
+        <span class="fw-semibold">Fecha inicio:</span>
+        <input v-model="fechaDesde" type="date" class="form-control form-control-sm" style="max-width:145px;" @change="onFechaChange" />
+      </div>
+      <div class="d-flex align-items-center gap-2" style="font-size:0.84rem; color:#475569;">
+        <span class="fw-semibold">Fecha fin:</span>
+        <input v-model="fechaHasta" type="date" class="form-control form-control-sm" style="max-width:145px;" @change="onFechaChange" />
+      </div>
+      <button v-if="fechaDesde || fechaHasta" class="btn btn-sm btn-ghost-secondary" @click="fechaDesde=''; fechaHasta=''; onFechaChange()">
+        Limpiar fechas
+      </button>
     </div>
 
     <div v-if="!temporadaId" class="card">
@@ -105,16 +120,22 @@
             <IconChartLine :size="18" class="text-primary" />
             <span class="fw-bold" style="font-size:0.9rem;">Tendencia de Ingresos</span>
             <span v-if="temporadaNombre" class="text-muted" style="font-size:0.78rem;">{{ temporadaNombre }}</span>
-            <div class="ms-auto d-flex gap-1">
-              <button class="btn btn-sm btn-outline-danger" @click="exportPDF" title="Exportar PDF">
-                <IconFileTypePdf :size="16" />
-              </button>
-              <button class="btn btn-sm btn-outline-success" @click="exportExcel" title="Exportar Excel">
-                <IconFileSpreadsheet :size="16" />
-              </button>
+            <div class="ms-auto d-flex align-items-center gap-2 flex-wrap">
+              <label class="d-flex align-items-center gap-1 mb-0" style="font-size:0.82rem; cursor:pointer;">
+                <input type="checkbox" v-model="mostrarGrafico" class="form-check-input mt-0" />
+                <span class="text-muted">Mostrar gráfico</span>
+              </label>
+              <div class="d-flex gap-1">
+                <button class="btn btn-sm btn-outline-danger" @click="exportPDF" title="Exportar PDF">
+                  <IconFileTypePdf :size="16" />
+                </button>
+                <button class="btn btn-sm btn-outline-success" @click="exportExcel" title="Exportar Excel">
+                  <IconFileSpreadsheet :size="16" />
+                </button>
+              </div>
             </div>
           </div>
-          <div class="card-body" style="padding: 8px 0 0 0;">
+          <div v-if="mostrarGrafico" class="card-body" style="padding: 8px 0 0 0;">
             <div v-if="!datos.length" class="text-center py-5 text-muted">
               Sin ingresos registrados para esta temporada
             </div>
@@ -238,7 +259,11 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, defineProps } from 'vue'
+const props = defineProps({
+  embedded:     { type: Boolean, default: false },
+  temporadaSel: { type: [String, Number], default: '' },
+})
 import api from '@/services/api'
 import {
   IconChartLine, IconFileTypePdf, IconFileSpreadsheet,
@@ -250,11 +275,15 @@ import * as XLSX from 'xlsx'
 import { saveAs } from 'file-saver'
 
 // ── Estado ───────────────────────────────────────────────
-const temporadas   = ref([])
-const temporadaId  = ref('')
-const agrupacion   = ref('mes')
-const cargando     = ref(false)
-const datos        = ref([])
+const temporadas     = ref([])
+const temporadaId    = ref('')
+watch(() => props.temporadaSel, val => { if (props.embedded && val) { temporadaId.value = val; cargar() } }, { immediate: false })
+const agrupacion     = ref('mes')
+const cargando       = ref(false)
+const datos          = ref([])
+const mostrarGrafico = ref(true)
+const fechaDesde     = ref('')
+const fechaHasta     = ref('')
 
 const fechaGeneracion = computed(() =>
   new Date().toLocaleString('es-VE', { dateStyle: 'medium', timeStyle: 'short' })
@@ -338,22 +367,28 @@ async function cargar() {
   if (!temporadaId.value) return
   cargando.value = true
   try {
-    const { data } = await api.get('/reportes/historico-ingresos', {
-      params: { temporada: temporadaId.value, agrupacion: agrupacion.value },
-    })
+    const params = { temporada: temporadaId.value, agrupacion: agrupacion.value }
+    if (fechaDesde.value) params.fechaDesde = fechaDesde.value
+    if (fechaHasta.value) params.fechaHasta = fechaHasta.value
+    const { data } = await api.get('/reportes/historico-ingresos', { params })
     datos.value = data
   } finally {
     cargando.value = false
   }
 }
 
+function onFechaChange() {
+  if (temporadaId.value) cargar()
+}
+
 async function cargarTemporadas() {
   const { data } = await api.get('/temporadas')
   temporadas.value = data
-  const activa = data.find(t => t.activa)
-  if (activa) {
-    temporadaId.value = activa.id_temporada
-    cargar()
+  if (props.embedded && props.temporadaSel) {
+    temporadaId.value = props.temporadaSel; cargar()
+  } else {
+    const activa = data.find(t => t.activa)
+    if (activa) { temporadaId.value = activa.id_temporada; cargar() }
   }
 }
 
@@ -380,6 +415,7 @@ async function cargarLogoBase64(url) {
 
 // ── Exportar PDF ──────────────────────────────────────────
 async function exportPDF() {
+  try {
   const doc   = new jsPDF({ orientation: 'portrait' })
   const pageW = doc.internal.pageSize.getWidth()
   const pageH = doc.internal.pageSize.getHeight()
@@ -397,29 +433,29 @@ async function exportPDF() {
 
   // ── Logo ──────────────────────────────────────────────
   if (logoBase64) {
-    doc.addImage(logoBase64, 'PNG', 8, 6, 26, 26)
+    doc.addImage(logoBase64, 'PNG', 8, 6, 32, 28)
   } else {
     doc.setDrawColor(255, 255, 255)
     doc.setLineWidth(0.5)
-    doc.roundedRect(8, 6, 26, 26, 3, 3, 'S')
+    doc.roundedRect(8, 6, 32, 28, 3, 3, 'S')
     doc.setTextColor(255, 255, 255)
     doc.setFontSize(6.5)
     doc.setFont('helvetica', 'normal')
-    doc.text('LOGO', 21, 17, { align: 'center' })
-    doc.text('LIGA', 21, 23, { align: 'center' })
+    doc.text('LOGO', 24, 17, { align: 'center' })
+    doc.text('LIGA', 24, 23, { align: 'center' })
   }
 
   // ── Nombre del sistema ────────────────────────────────
   doc.setTextColor(255, 255, 255)
   doc.setFontSize(17)
   doc.setFont('helvetica', 'bold')
-  doc.text('Liga Diamante', 40, 16)
+  doc.text('Liga Diamante', 46, 16)
 
   // ── Nombre del reporte ────────────────────────────────
   doc.setFontSize(9.5)
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(148, 163, 184)
-  doc.text('Reporte Histórico de Ingresos — Tendencia por ' + (agrupacion.value === 'mes' ? 'Mes' : 'Semana'), 40, 24)
+  doc.text('Reporte Histórico de Ingresos — Tendencia por ' + (agrupacion.value === 'mes' ? 'Mes' : 'Semana'), 46, 24)
 
   // ── Temporada (derecha) ───────────────────────────────
   doc.setFontSize(9)
@@ -589,6 +625,10 @@ async function exportPDF() {
   }
 
   doc.save(`reporte-historico-ingresos-${temporadaNombre.value.replace(/\s+/g, '_')}.pdf`)
+  } catch (err) {
+    console.error('Error al exportar PDF de histórico de ingresos:', err)
+    alert('No se pudo generar el PDF. Asegúrate de que los datos estén cargados.')
+  }
 }
 
 // ── Exportar Excel ────────────────────────────────────────

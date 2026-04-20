@@ -1,15 +1,11 @@
 <template>
   <div>
-    <div class="page-header d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <div v-if="!props.embedded" class="page-header d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
       <div>
         <h2 class="page-title">Estadísticas Ofensivas</h2>
         <p class="page-subtitle">Rendimiento de bateadores por temporada</p>
       </div>
       <div class="d-flex align-items-center gap-2 flex-wrap">
-        <select v-model="filtroEquipo" class="form-select form-select-sm" style="max-width:180px;">
-          <option value="">Todos los equipos</option>
-          <option v-for="eq in equipos" :key="eq" :value="eq">{{ eq }}</option>
-        </select>
         <select v-model="temporadaId" class="form-select form-select-sm" style="max-width:220px;" @change="cargar">
           <option value="">— Seleccionar temporada —</option>
           <option v-for="t in temporadas" :key="t.id_temporada" :value="t.id_temporada">
@@ -99,16 +95,28 @@
             <IconChartBar :size="18" class="text-primary" />
             <span class="fw-bold" style="font-size:0.9rem;">Top 5 — Home Runs e Impulsadas</span>
             <span v-if="temporadaNombre" class="text-muted" style="font-size:0.78rem;">{{ temporadaNombre }}</span>
-            <div class="ms-auto d-flex gap-1">
-              <button class="btn btn-sm btn-outline-danger" @click="exportPDF" title="Exportar PDF">
-                <IconFileTypePdf :size="16" />
-              </button>
-              <button class="btn btn-sm btn-outline-success" @click="exportExcel" title="Exportar Excel">
-                <IconFileSpreadsheet :size="16" />
-              </button>
+            <div class="ms-auto d-flex align-items-center gap-2 flex-wrap">
+              <FiltroMultiSelect
+                v-model="equiposSeleccionados"
+                :opciones="equipos"
+                texto-todos="Todos los equipos"
+                plural-label="equipos"
+              />
+              <label class="d-flex align-items-center gap-1 mb-0" style="font-size:0.82rem; cursor:pointer;">
+                <input type="checkbox" v-model="mostrarGrafico" class="form-check-input mt-0" />
+                <span class="text-muted">Mostrar gráfico</span>
+              </label>
+              <div class="d-flex gap-1">
+                <button class="btn btn-sm btn-outline-danger" @click="exportPDF" title="Exportar PDF">
+                  <IconFileTypePdf :size="16" />
+                </button>
+                <button class="btn btn-sm btn-outline-success" @click="exportExcel" title="Exportar Excel">
+                  <IconFileSpreadsheet :size="16" />
+                </button>
+              </div>
             </div>
           </div>
-          <div class="card-body" style="padding:8px 0 0 0;">
+          <div v-if="mostrarGrafico" class="card-body" style="padding:8px 0 0 0;">
             <div v-if="!datos.length" class="text-center py-5 text-muted">Sin estadísticas registradas</div>
             <div v-else style="width:100%; overflow:hidden;">
               <svg viewBox="0 0 900 300" style="width:100%; height:300px; display:block;" xmlns="http://www.w3.org/2000/svg">
@@ -154,58 +162,70 @@
           </div>
         </div>
 
-        <!-- Tabla estadísticas -->
+        <!-- Tabla estadísticas agrupada por equipo -->
         <div class="card shadow-sm">
-          <div class="card-header d-flex align-items-center gap-2">
+          <div class="card-header d-flex align-items-center gap-2 flex-wrap">
             <IconTable :size="18" class="text-primary" />
             <span class="fw-bold" style="font-size:0.9rem;">Estadísticas por Jugador</span>
-            <div class="ms-auto">
-              <input v-model="busqueda" class="form-control form-control-sm" placeholder="Buscar jugador..." style="max-width:180px;" />
+            <div class="ms-auto d-flex align-items-center gap-2 flex-wrap">
+              <FiltroMultiSelect
+                v-model="jugadoresSeleccionados"
+                :opciones="jugadores"
+                texto-todos="Todos los jugadores"
+                plural-label="jugadores"
+              />
             </div>
           </div>
-          <div class="table-responsive">
-            <table class="table table-vcenter card-table">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Jugador</th>
-                  <th>Equipo</th>
-                  <th class="text-center">JJ</th>
-                  <th class="text-center">AB</th>
-                  <th class="text-center">H</th>
-                  <th class="text-center">2B</th>
-                  <th class="text-center">3B</th>
-                  <th class="text-center" style="color:#f97316;">HR</th>
-                  <th class="text-center">RBI</th>
-                  <th class="text-center">R</th>
-                  <th class="text-center fw-bold">AVE</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-if="!datosFiltrados.length">
-                  <td colspan="12" class="text-center py-5 text-muted">Sin datos</td>
-                </tr>
-                <tr v-for="(j, i) in datosFiltrados" :key="j.id_jugador">
-                  <td class="text-muted small">{{ i + 1 }}</td>
-                  <td><span class="fw-semibold">{{ j.jugador }}</span></td>
-                  <td class="text-muted small">{{ j.nombre_equipo }}</td>
-                  <td class="text-center">{{ j.juegos }}</td>
-                  <td class="text-center">{{ j.AB }}</td>
-                  <td class="text-center">{{ j.H }}</td>
-                  <td class="text-center text-muted">{{ j.dobles }}</td>
-                  <td class="text-center text-muted">{{ j.triples }}</td>
-                  <td class="text-center fw-bold" style="color:#f97316;">{{ j.HR }}</td>
-                  <td class="text-center">{{ j.RBI }}</td>
-                  <td class="text-center">{{ j.R }}</td>
-                  <td class="text-center">
-                    <span class="badge fw-bold" style="font-size:0.82rem;"
-                      :style="j.AVE >= 0.300 ? 'background:#10b98122;color:#10b981;' : 'background:#6366f122;color:#6366f1;'">
-                      .{{ aveStr(j.AVE) }}
-                    </span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+          <div class="card-body">
+            <div v-if="!datosFiltrados.length" class="text-center py-5 text-muted">Sin datos</div>
+            <template v-else>
+              <div class="grupos-scroll">
+                <div v-for="grupo in bateadoresPorEquipo" :key="grupo.equipo" class="mb-4">
+                  <div class="d-flex align-items-center gap-2 mb-2">
+                    <div class="team-avatar">{{ grupo.equipo?.charAt(0) }}</div>
+                    <span class="fw-bold" style="font-size:0.9rem;">{{ grupo.equipo }}</span>
+                    <span class="badge bg-blue-lt text-blue ms-1">{{ grupo.jugadores.length }} jugador(es)</span>
+                  </div>
+                  <div class="table-responsive">
+                    <table class="table table-vcenter card-table table-sm table-hover">
+                      <thead>
+                        <tr>
+                          <th>Jugador</th>
+                          <th class="text-center"><AbrevTooltip ab="JJ" /></th>
+                          <th class="text-center"><AbrevTooltip ab="AB" /></th>
+                          <th class="text-center"><AbrevTooltip ab="H" /></th>
+                          <th class="text-center"><AbrevTooltip ab="2B" /></th>
+                          <th class="text-center"><AbrevTooltip ab="3B" /></th>
+                          <th class="text-center" style="color:#f97316;"><AbrevTooltip ab="HR" /></th>
+                          <th class="text-center"><AbrevTooltip ab="RBI" /></th>
+                          <th class="text-center"><AbrevTooltip ab="R" /></th>
+                          <th class="text-center fw-bold"><AbrevTooltip ab="AVE" /></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="j in grupo.jugadores" :key="j.id_jugador">
+                          <td><span class="fw-semibold">{{ j.jugador }}</span></td>
+                          <td class="text-center">{{ j.juegos }}</td>
+                          <td class="text-center">{{ j.AB }}</td>
+                          <td class="text-center">{{ j.H }}</td>
+                          <td class="text-center text-muted">{{ j.dobles }}</td>
+                          <td class="text-center text-muted">{{ j.triples }}</td>
+                          <td class="text-center fw-bold" style="color:#f97316;">{{ j.HR }}</td>
+                          <td class="text-center">{{ j.RBI }}</td>
+                          <td class="text-center">{{ j.R }}</td>
+                          <td class="text-center">
+                            <span class="badge fw-bold" style="font-size:0.82rem;"
+                              :style="j.AVE >= 0.300 ? 'background:#10b98122;color:#10b981;' : 'background:#6366f122;color:#6366f1;'">
+                              .{{ aveStr(j.AVE) }}
+                            </span>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </template>
           </div>
           <div class="card-footer text-muted text-end" style="font-size:0.72rem;">Generado el {{ fechaGeneracion }}</div>
         </div>
@@ -215,8 +235,14 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, defineProps } from 'vue'
+const props = defineProps({
+  embedded:     { type: Boolean, default: false },
+  temporadaSel: { type: [String, Number], default: '' },
+})
 import api from '@/services/api'
+import FiltroMultiSelect from '@/components/FiltroMultiSelect.vue'
+import AbrevTooltip from '@/components/AbrevTooltip.vue'
 import {
   IconChartBar, IconBallBaseball, IconTrophy, IconUsers, IconTable,
   IconFileTypePdf, IconFileSpreadsheet,
@@ -226,12 +252,14 @@ import autoTable from 'jspdf-autotable'
 import * as XLSX from 'xlsx'
 import { saveAs } from 'file-saver'
 
-const temporadas   = ref([])
-const temporadaId  = ref('')
-const cargando     = ref(false)
-const datos        = ref([])
-const busqueda     = ref('')
-const filtroEquipo = ref('')
+const temporadas             = ref([])
+const temporadaId            = ref('')
+watch(() => props.temporadaSel, val => { if (props.embedded && val) { temporadaId.value = val; cargar() } }, { immediate: false })
+const cargando               = ref(false)
+const datos                  = ref([])
+const equiposSeleccionados   = ref([])
+const jugadoresSeleccionados = ref([])
+const mostrarGrafico         = ref(true)
 
 const fechaGeneracion = computed(() =>
   new Date().toLocaleString('es-VE', { dateStyle: 'medium', timeStyle: 'short' })
@@ -241,15 +269,21 @@ const temporadaNombre = computed(() => {
   return t ? `${t.nombre} (${t.anio})` : ''
 })
 
-const equipos = computed(() => [...new Set(datos.value.map(j => j.nombre_equipo))].sort())
+const equipos   = computed(() => [...new Set(datos.value.map(j => j.nombre_equipo))].filter(Boolean).sort())
+const jugadores = computed(() => [...new Set(datos.value.map(j => j.jugador))].filter(Boolean).sort())
 
 const datosFiltrados = computed(() => {
+  const porEquipo  = equiposSeleccionados.value.length > 0
+  const porJugador = jugadoresSeleccionados.value.length > 0
+
+  // Sin ningún filtro → todos
+  if (!porEquipo && !porJugador) return datos.value
+
   return datos.value.filter(j => {
-    const matchBusqueda = !busqueda.value ||
-      j.jugador.toLowerCase().includes(busqueda.value.toLowerCase()) ||
-      j.nombre_equipo.toLowerCase().includes(busqueda.value.toLowerCase())
-    const matchEquipo = !filtroEquipo.value || j.nombre_equipo === filtroEquipo.value
-    return matchBusqueda && matchEquipo
+    // OR: aparece si coincide con el filtro de equipos O con el de jugadores
+    const matchEquipo  = porEquipo  && equiposSeleccionados.value.includes(j.nombre_equipo)
+    const matchJugador = porJugador && jugadoresSeleccionados.value.includes(j.jugador)
+    return matchEquipo || matchJugador
   })
 })
 
@@ -257,6 +291,18 @@ const top5HR  = computed(() => [...datos.value].sort((a,b) => b.HR - a.HR).slice
 const liderAve = computed(() => datos.value.length ? datos.value[0] : null)
 const liderHR  = computed(() => datos.value.length ? [...datos.value].sort((a,b) => b.HR - a.HR)[0] : null)
 const liderRBI = computed(() => datos.value.length ? [...datos.value].sort((a,b) => b.RBI - a.RBI)[0] : null)
+
+const bateadoresPorEquipo = computed(() => {
+  const mapa = {}
+  for (const j of datosFiltrados.value) {
+    const eq = j.nombre_equipo || 'Sin equipo'
+    if (!mapa[eq]) mapa[eq] = []
+    mapa[eq].push(j)
+  }
+  return Object.entries(mapa)
+    .map(([equipo, jugadores]) => ({ equipo, jugadores: jugadores.sort((a, b) => (b.AVE ?? 0) - (a.AVE ?? 0)) }))
+    .sort((a, b) => a.equipo.localeCompare(b.equipo))
+})
 
 const maxTop5 = computed(() => {
   if (!top5HR.value.length) return 1
@@ -292,8 +338,12 @@ async function cargar() {
 async function cargarTemporadas() {
   const { data } = await api.get('/temporadas')
   temporadas.value = data
-  const activa = data.find(t => t.activa)
-  if (activa) { temporadaId.value = activa.id_temporada; cargar() }
+  if (props.embedded && props.temporadaSel) {
+    temporadaId.value = props.temporadaSel; cargar()
+  } else {
+    const activa = data.find(t => t.activa)
+    if (activa) { temporadaId.value = activa.id_temporada; cargar() }
+  }
 }
 
 async function cargarLogoBase64(url) {
@@ -311,7 +361,73 @@ async function cargarLogoBase64(url) {
   })
 }
 
+function generarGraficoCanvas() {
+  const top5 = [...datos.value].sort((a, b) => Number(b.HR) - Number(a.HR)).slice(0, 5)
+  if (!top5.length) return null
+
+  const maxV = Math.max(...top5.map(j => Math.max(Number(j.HR), Number(j.RBI)))) * 1.2 || 1
+  const W = 900, H = 300
+  const oc  = document.createElement('canvas')
+  oc.width  = W; oc.height = H
+  const ctx = oc.getContext('2d')
+
+  ctx.fillStyle = '#ffffff'
+  ctx.fillRect(0, 0, W, H)
+
+  // Líneas guía
+  for (let i = 0; i < 5; i++) {
+    const y = 20 + (220 / 4) * (4 - i)
+    ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 1
+    ctx.beginPath(); ctx.moveTo(70, y); ctx.lineTo(880, y); ctx.stroke()
+    ctx.fillStyle = '#94a3b8'; ctx.font = '10px sans-serif'
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle'
+    ctx.fillText(Math.round(maxV * i / 4), 64, y)
+  }
+
+  // Barras
+  const bw = 810 / top5.length
+  top5.forEach((j, i) => {
+    const x    = 70 + i * bw
+    const w    = bw - 8
+    const hHR  = Math.max((Number(j.HR)  / maxV) * 220, 2)
+    const hRBI = Math.max((Number(j.RBI) / maxV) * 220, 2)
+
+    ctx.fillStyle = '#f97316'
+    ctx.fillRect(x, 240 - hHR,  w * 0.45, hHR)
+    ctx.fillStyle = '#6366f1'
+    ctx.fillRect(x + w * 0.48, 240 - hRBI, w * 0.45, hRBI)
+
+    ctx.fillStyle = '#475569'; ctx.font = '9px sans-serif'
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top'
+    ctx.fillText(j.jugador.split(' ')[0], x + w / 2, 244)
+    ctx.fillStyle = '#94a3b8'; ctx.font = '8px sans-serif'
+    ctx.fillText((j.nombre_equipo || '').substring(0, 10), x + w / 2, 256)
+
+    if (Number(j.HR) > 0) {
+      ctx.fillStyle = '#f97316'; ctx.font = 'bold 9px sans-serif'
+      ctx.textBaseline = 'bottom'
+      ctx.fillText(j.HR, x + w * 0.22, 240 - hHR - 2)
+    }
+    if (Number(j.RBI) > 0) {
+      ctx.fillStyle = '#6366f1'; ctx.font = 'bold 9px sans-serif'
+      ctx.textBaseline = 'bottom'
+      ctx.fillText(j.RBI, x + w * 0.71, 240 - hRBI - 2)
+    }
+  })
+
+  // Leyenda
+  ctx.fillStyle = '#f97316'; ctx.fillRect(680, 8, 12, 10)
+  ctx.fillStyle = '#64748b'; ctx.font = '10px sans-serif'
+  ctx.textAlign = 'left'; ctx.textBaseline = 'top'
+  ctx.fillText('HR', 696, 9)
+  ctx.fillStyle = '#6366f1'; ctx.fillRect(720, 8, 12, 10)
+  ctx.fillStyle = '#64748b'; ctx.fillText('RBI', 736, 9)
+
+  return oc
+}
+
 async function exportPDF() {
+  try {
   const doc   = new jsPDF({ orientation: 'landscape' })
   const pageW = doc.internal.pageSize.getWidth()
   const pageH = doc.internal.pageSize.getHeight()
@@ -319,16 +435,16 @@ async function exportPDF() {
 
   doc.setFillColor(30,41,59); doc.rect(0,0,pageW,40,'F')
   doc.setFillColor(99,102,241); doc.rect(0,40,pageW,2,'F')
-  if (logo) { doc.addImage(logo,'PNG',8,6,26,26) }
+  if (logo) { doc.addImage(logo,'PNG',8,6,32,28) }
   else {
-    doc.setDrawColor(255,255,255); doc.setLineWidth(0.5); doc.roundedRect(8,6,26,26,3,3,'S')
+    doc.setDrawColor(255,255,255); doc.setLineWidth(0.5); doc.roundedRect(8,6,32,28,3,3,'S')
     doc.setTextColor(255,255,255); doc.setFontSize(6.5); doc.setFont('helvetica','normal')
-    doc.text('LOGO',21,17,{align:'center'}); doc.text('LIGA',21,23,{align:'center'})
+    doc.text('LOGO',24,17,{align:'center'}); doc.text('LIGA',24,23,{align:'center'})
   }
   doc.setTextColor(255,255,255); doc.setFontSize(17); doc.setFont('helvetica','bold')
-  doc.text('Liga Diamante',40,16)
+  doc.text('Liga Diamante',46,16)
   doc.setFontSize(9.5); doc.setFont('helvetica','normal'); doc.setTextColor(148,163,184)
-  doc.text('Reporte de Estadísticas Ofensivas — Bateadores',40,24)
+  doc.text('Reporte de Estadísticas Ofensivas — Bateadores',46,24)
   doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255)
   doc.text(temporadaNombre.value,pageW-14,16,{align:'right'})
   doc.setFontSize(7.5); doc.setFont('helvetica','normal'); doc.setTextColor(148,163,184)
@@ -336,6 +452,22 @@ async function exportPDF() {
   doc.setTextColor(0,0,0)
 
   let cy = 52
+
+  // Gráfico Top 5 HR y RBI
+  if (mostrarGrafico.value && datos.value.length) {
+    const oc = generarGraficoCanvas()
+    if (oc) {
+      const imgData = oc.toDataURL('image/png')
+      const imgW    = pageW - 28
+      const imgH    = imgW * (300 / 900)
+      doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(30,41,59)
+      doc.text('Top 5 — Home Runs y RBI por Jugador', pageW / 2, cy, { align: 'center' })
+      cy += 4
+      doc.addImage(imgData, 'PNG', 14, cy, imgW, imgH)
+      cy += imgH + 8
+    }
+  }
+
   doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(30,41,59)
   doc.text('Estadísticas por Jugador',14,cy); cy += 5
 
@@ -371,6 +503,10 @@ async function exportPDF() {
     doc.text(`Página ${i} de ${total}`,pageW-14,pageH-8,{align:'right'})
   }
   doc.save(`reporte-bateadores-${temporadaNombre.value.replace(/\s+/g,'_')}.pdf`)
+  } catch (err) {
+    console.error('Error al exportar PDF de bateadores:', err)
+    alert('No se pudo generar el PDF. Asegúrate de que los datos estén cargados.')
+  }
 }
 
 function exportExcel() {
@@ -393,3 +529,29 @@ function exportExcel() {
 
 onMounted(cargarTemporadas)
 </script>
+
+<style scoped>
+.team-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: #eee;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+.grupos-scroll {
+  max-height: 600px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+}
+.grupos-scroll::-webkit-scrollbar { width: 6px; }
+.grupos-scroll::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 3px; }
+.grupos-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+.grupos-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+</style>

@@ -23,6 +23,8 @@
         <RouterLink :to="{ name: 'LandingNoticias' }" :class="['ld-nav-link', { 'ld-nav-link--active': route.name === 'LandingNoticias' }]">Noticias</RouterLink>
         <RouterLink :to="{ name: 'LandingStanding' }" :class="['ld-nav-link', { 'ld-nav-link--active': route.name === 'LandingStanding' }]">Standing</RouterLink>
         <RouterLink :to="{ name: 'LandingCalendario' }" :class="['ld-nav-link', { 'ld-nav-link--active': route.name === 'LandingCalendario' }]">Calendario</RouterLink>
+        <RouterLink :to="{ name: 'LandingEquipos' }" :class="['ld-nav-link', { 'ld-nav-link--active': route.name === 'LandingEquipos' }]">Equipos</RouterLink>
+        <RouterLink :to="{ name: 'LandingLigaJugadores' }" :class="['ld-nav-link', { 'ld-nav-link--active': route.name === 'LandingLigaJugadores' }]">Jugadores</RouterLink>
         <RouterLink :to="{ name: 'Login' }" class="ld-nav-btn">INICIAR SESIÓN</RouterLink>
       </div>
 
@@ -51,6 +53,8 @@
               <RouterLink :to="{ name: 'LandingNoticias' }" class="ld-mobile-link" @click="mobileOpen = false">Noticias</RouterLink>
               <RouterLink :to="{ name: 'LandingStanding' }" class="ld-mobile-link" @click="mobileOpen = false">Standing</RouterLink>
               <RouterLink :to="{ name: 'LandingCalendario' }" class="ld-mobile-link" @click="mobileOpen = false">Calendario</RouterLink>
+              <RouterLink :to="{ name: 'LandingEquipos' }" class="ld-mobile-link" @click="mobileOpen = false">Equipos</RouterLink>
+              <RouterLink :to="{ name: 'LandingLigaJugadores' }" class="ld-mobile-link" @click="mobileOpen = false">Jugadores</RouterLink>
               <RouterLink :to="{ name: 'Login' }" class="ld-mobile-btn" @click="mobileOpen = false">INICIAR SESIÓN</RouterLink>
             </div>
           </div>
