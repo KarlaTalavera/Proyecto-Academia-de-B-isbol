@@ -14,7 +14,8 @@ router.get('/partidos', async (req, res) => {
              r.carreras_visitantes AS carreras_visitante,
              ec.nombre_equipo AS equipo_casa,
              ev.nombre_equipo AS equipo_visitante,
-             ? AS temporada
+             ? AS temporada,
+             EXISTS(SELECT 1 FROM lineup l WHERE l.id_partido = p.id_partido) AS tiene_lineup
       FROM partido p
       JOIN equipo ec ON p.id_equipo_casa     = ec.id_equipo
       JOIN equipo ev ON p.id_equipo_visitante = ev.id_equipo
@@ -36,24 +37,79 @@ router.get('/posiciones', async (req, res) => {
     const [[temp]] = await db.query('SELECT id_temporada FROM temporada WHERE activa = 1 LIMIT 1')
     if (!temp) return res.json([])
 
+    const id_temp = temp.id_temporada
+    const { vuelta } = req.query   // '1' | '2' | undefined
+
+    // Para 1V y 2V: tomar solo la primera o segunda mitad de juegos finalizados
+    let filtroIds = ''
+    if (vuelta === '1' || vuelta === '2') {
+      const [[{ total }]] = await db.query(
+        `SELECT COUNT(*) AS total FROM partido WHERE id_temporada = ${id_temp} AND estado = 'finalizado'`
+      )
+      if (!total) return res.json([])
+      const mitad  = Math.ceil(total / 2)
+      const offset = vuelta === '1' ? 0 : mitad
+      const [mitadRows] = await db.query(
+        `SELECT id_partido FROM partido WHERE id_temporada = ${id_temp} AND estado = 'finalizado'
+         ORDER BY fecha_juego, hora_juego LIMIT ${mitad} OFFSET ${offset}`
+      )
+      if (!mitadRows.length) return res.json([])
+      filtroIds = `AND p.id_partido IN (${mitadRows.map(r => r.id_partido).join(',')})`
+    }
+
     const [rows] = await db.query(`
-      SELECT e.id_equipo, e.nombre_equipo,
-        COUNT(CASE WHEN (p.id_equipo_casa = e.id_equipo AND r.carreras_home > r.carreras_visitantes)
-                     OR (p.id_equipo_visitante = e.id_equipo AND r.carreras_visitantes > r.carreras_home) THEN 1 END) AS ganados,
-        COUNT(CASE WHEN (p.id_equipo_casa = e.id_equipo AND r.carreras_home < r.carreras_visitantes)
-                     OR (p.id_equipo_visitante = e.id_equipo AND r.carreras_visitantes < r.carreras_home) THEN 1 END) AS perdidos,
-        COUNT(CASE WHEN r.id_resultado IS NOT NULL THEN 1 END) AS jugados
+      SELECT
+        e.id_equipo,
+        e.nombre_equipo,
+        COUNT(CASE
+          WHEN p.id_equipo_casa      = e.id_equipo AND r.carreras_home         > r.carreras_visitantes THEN 1
+          WHEN p.id_equipo_visitante = e.id_equipo AND r.carreras_visitantes   > r.carreras_home       THEN 1
+        END) AS ganados,
+        COUNT(CASE
+          WHEN p.id_equipo_casa      = e.id_equipo AND r.carreras_home         < r.carreras_visitantes THEN 1
+          WHEN p.id_equipo_visitante = e.id_equipo AND r.carreras_visitantes   < r.carreras_home       THEN 1
+        END) AS perdidos,
+        COUNT(r.id_partido) AS jugados,
+        COALESCE(SUM(CASE
+          WHEN p.id_equipo_casa      = e.id_equipo THEN r.carreras_home
+          WHEN p.id_equipo_visitante = e.id_equipo THEN r.carreras_visitantes
+          ELSE 0
+        END), 0) AS carreras_favor,
+        COALESCE(SUM(CASE
+          WHEN p.id_equipo_casa      = e.id_equipo THEN r.carreras_visitantes
+          WHEN p.id_equipo_visitante = e.id_equipo THEN r.carreras_home
+          ELSE 0
+        END), 0) AS carreras_contra
       FROM equipo e
-      LEFT JOIN partido p ON (p.id_equipo_casa = e.id_equipo OR p.id_equipo_visitante = e.id_equipo)
-        AND p.id_temporada = ? AND p.estado = 'finalizado'
+      LEFT JOIN partido p
+        ON (p.id_equipo_casa = e.id_equipo OR p.id_equipo_visitante = e.id_equipo)
+        AND p.id_temporada = ${id_temp}
+        AND p.estado = 'finalizado'
+        ${filtroIds}
       LEFT JOIN resultado r ON r.id_partido = p.id_partido
       GROUP BY e.id_equipo, e.nombre_equipo
       ORDER BY ganados DESC, perdidos ASC
-    `, [temp.id_temporada])
+    `)
+
     res.json(rows)
   } catch (e) {
     console.error(e)
     res.status(500).json({ error: 'Error al obtener posiciones' })
+  }
+})
+
+// ── Noticias activas ──────────────────────────────────────────
+router.get('/noticias', async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT id_noticia, titulo, contenido, foto_url, fecha_publicacion
+       FROM noticia WHERE activa = 1
+       ORDER BY created_at DESC`
+    )
+    res.json(rows)
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: 'Error al obtener noticias' })
   }
 })
 
@@ -83,7 +139,7 @@ router.get('/lineup/:id_partido', async (req, res) => {
     const [rows] = await db.query(`
       SELECT
         l.orden_bateo, l.posicion_juego, l.es_titular,
-        j.nombre, j.apellido, j.posicion, j.rol,
+        j.nombre, j.apellido, j.posicion, j.rol, j.foto_url,
         e.id_equipo, e.nombre_equipo,
         p.id_equipo_casa, p.id_equipo_visitante
       FROM lineup l
@@ -196,6 +252,131 @@ Responde ÚNICAMENTE con JSON válido (sin markdown, sin backticks, sin texto ex
   }
 })
 
+
+// ── Directorio público de jugadores de la Liga ───────────────
+router.get('/jugadores-liga', async (req, res) => {
+  try {
+    const { busqueda, equipo } = req.query
+    let sql = `
+      SELECT j.id_jugador, j.nombre, j.apellido, j.posicion, j.rol,
+             j.brazo_dominante, j.foto_url,
+             e.id_equipo, e.nombre_equipo, e.logo_url AS equipo_logo_url
+      FROM jugador j
+      JOIN equipo e ON j.id_equipo = e.id_equipo
+      WHERE j.activo = 1
+    `
+    const params = []
+    if (busqueda) {
+      sql += ' AND CONCAT(j.nombre, " ", j.apellido) LIKE ?'
+      params.push(`%${busqueda}%`)
+    }
+    if (equipo) {
+      sql += ' AND j.id_equipo = ?'
+      params.push(equipo)
+    }
+    sql += ' ORDER BY j.apellido, j.nombre'
+    const [rows] = await db.query(sql, params)
+    res.json(rows)
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: 'Error al obtener jugadores' })
+  }
+})
+
+// ── Perfil de jugador con estadísticas de carrera ────────────
+router.get('/jugadores-liga/:id', async (req, res) => {
+  try {
+    const { id } = req.params
+    const [[jugador]] = await db.query(`
+      SELECT j.*, e.nombre_equipo, e.logo_url AS equipo_logo_url
+      FROM jugador j
+      JOIN equipo e ON j.id_equipo = e.id_equipo
+      WHERE j.id_jugador = ?
+    `, [id])
+
+    if (!jugador) return res.status(404).json({ error: 'Jugador no encontrado' })
+
+    const [[bateo]] = await db.query(`
+      SELECT
+        COUNT(DISTINCT db.id_partido)  AS juegos_jugados,
+        COALESCE(SUM(db.turnos_al_bate),      0) AS AB,
+        COALESCE(SUM(db.hits),                0) AS H,
+        COALESCE(SUM(db.dobles),              0) AS dobles,
+        COALESCE(SUM(db.triples),             0) AS triples,
+        COALESCE(SUM(db.jonrones),            0) AS HR,
+        COALESCE(SUM(db.carreras),            0) AS R,
+        COALESCE(SUM(db.carreras_impulsadas), 0) AS RBI,
+        COALESCE(SUM(db.bolas),               0) AS BB,
+        CASE WHEN SUM(db.turnos_al_bate) > 0
+          THEN ROUND(SUM(db.hits) / SUM(db.turnos_al_bate), 3)
+          ELSE 0 END AS AVG
+      FROM desempeno_bateador db
+      WHERE db.id_jugador = ?
+    `, [id])
+
+    const [[pitcheo]] = await db.query(`
+      SELECT
+        COUNT(DISTINCT dp.id_partido)       AS juegos_jugados,
+        COALESCE(SUM(dp.innings_pitcheados), 0) AS IP,
+        COALESCE(SUM(dp.hits_permitidos),    0) AS H,
+        COALESCE(SUM(dp.carreras_limpias),   0) AS ER,
+        COALESCE(SUM(dp.ponches),            0) AS K,
+        COALESCE(SUM(dp.bases_por_bolas),    0) AS BB,
+        COALESCE(SUM(dp.ganado),             0) AS W,
+        COALESCE(SUM(dp.perdido),            0) AS L,
+        COALESCE(SUM(dp.salvado),            0) AS SV,
+        CASE WHEN SUM(dp.innings_pitcheados) > 0
+          THEN ROUND((SUM(dp.carreras_limpias) * 9) / SUM(dp.innings_pitcheados), 2)
+          ELSE 0 END AS ERA
+      FROM desempeno_pitcher dp
+      WHERE dp.id_jugador = ?
+    `, [id])
+
+    res.json({ ...jugador, bateo: bateo || {}, pitcheo: pitcheo || {} })
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: 'Error al obtener perfil del jugador' })
+  }
+})
+
+// ── Perfil de equipo con plantilla y record ───────────────────
+router.get('/equipos-liga/:id', async (req, res) => {
+  try {
+    const { id } = req.params
+    const [[equipo]] = await db.query('SELECT * FROM equipo WHERE id_equipo = ?', [id])
+    if (!equipo) return res.status(404).json({ error: 'Equipo no encontrado' })
+
+    const [jugadores] = await db.query(`
+      SELECT j.id_jugador, j.nombre, j.apellido, j.posicion, j.rol, j.foto_url
+      FROM jugador j
+      WHERE j.id_equipo = ? AND j.activo = 1
+      ORDER BY j.apellido, j.nombre
+    `, [id])
+
+    const [[temp]] = await db.query('SELECT id_temporada FROM temporada WHERE activa = 1 LIMIT 1')
+    let record = { ganados: 0, perdidos: 0, jugados: 0 }
+    if (temp) {
+      const [[rec]] = await db.query(`
+        SELECT
+          COUNT(CASE WHEN (p.id_equipo_casa = ? AND r.carreras_home > r.carreras_visitantes)
+                       OR (p.id_equipo_visitante = ? AND r.carreras_visitantes > r.carreras_home) THEN 1 END) AS ganados,
+          COUNT(CASE WHEN (p.id_equipo_casa = ? AND r.carreras_home < r.carreras_visitantes)
+                       OR (p.id_equipo_visitante = ? AND r.carreras_visitantes < r.carreras_home) THEN 1 END) AS perdidos,
+          COUNT(r.id_resultado) AS jugados
+        FROM partido p
+        LEFT JOIN resultado r ON r.id_partido = p.id_partido
+        WHERE (p.id_equipo_casa = ? OR p.id_equipo_visitante = ?)
+          AND p.id_temporada = ?
+      `, [id, id, id, id, id, id, temp.id_temporada])
+      if (rec) record = rec
+    }
+
+    res.json({ ...equipo, jugadores, record })
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: 'Error al obtener equipo' })
+  }
+})
 
 // ── Jugadores sin foto_url (fallback si la columna no existe aún) ─
 router.get('/jugadores-temporada-simple', async (req, res) => {

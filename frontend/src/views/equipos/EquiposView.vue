@@ -52,7 +52,17 @@
             <tr v-for="eq in equiposFiltrados" :key="eq.id_equipo">
               <td>
                 <div class="d-flex align-items-center gap-3">
-                  <div class="team-avatar">{{ eq.nombre_equipo?.charAt(0)?.toUpperCase() }}</div>
+                  <!-- Logo / Avatar -->
+                  <div style="position:relative; flex-shrink:0;">
+                    <img v-if="eq.logo_url" :src="apiBase + eq.logo_url" :alt="eq.nombre_equipo"
+                      style="width:36px;height:36px;border-radius:8px;object-fit:cover;border:2px solid #e2e8f0;" />
+                    <div v-else class="team-avatar">{{ eq.nombre_equipo?.charAt(0)?.toUpperCase() }}</div>
+                    <label v-if="auth.puedeEditar" :title="eq.logo_url ? 'Cambiar logo' : 'Subir logo'"
+                      style="position:absolute;bottom:-2px;right:-2px;width:16px;height:16px;background:#6366f1;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1.5px solid white;">
+                      <IconCamera :size="9" style="color:white;" />
+                      <input type="file" accept=".jpg,.jpeg,.png" style="display:none;" @change="subirLogo(eq, $event)" />
+                    </label>
+                  </div>
                   <span class="fw-semibold" style="color:#1e293b;">{{ eq.nombre_equipo }}</span>
                 </div>
               </td>
@@ -143,8 +153,10 @@ import api from '@/services/api'
 import { useAuthStore } from '@/store/auth'
 import {
   IconPlus, IconSearch, IconPencil, IconTrash,
-  IconShield, IconMail, IconPhone, IconDeviceFloppy,
+  IconShield, IconMail, IconPhone, IconDeviceFloppy, IconCamera,
 } from '@tabler/icons-vue'
+
+const apiBase = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3000'
 
 const auth     = useAuthStore()
 const equipos  = ref([])
@@ -216,6 +228,22 @@ async function guardar() {
   } finally {
     guardando.value = false
   }
+}
+
+async function subirLogo(equipo, event) {
+  const file = event.target.files[0]
+  if (!file) return
+  const fd = new FormData()
+  fd.append('logo', file)
+  try {
+    const { data } = await api.post(`/equipos/${equipo.id_equipo}/logo`, fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    equipo.logo_url = data.logo_url
+  } catch (e) {
+    alert(e.response?.data?.error || 'Error al subir el logo')
+  }
+  event.target.value = ''
 }
 
 async function confirmarEliminar(equipo) {

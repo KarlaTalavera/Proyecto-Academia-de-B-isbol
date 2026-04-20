@@ -54,8 +54,18 @@
             <tr v-for="j in jugadoresPagina" :key="j.id_jugador">
               <td>
                 <div class="d-flex align-items-center gap-2">
-                  <div class="team-avatar" style="background: linear-gradient(135deg,#6366f1,#8b5cf6);">
-                    {{ j.nombre?.charAt(0)?.toUpperCase() }}
+                  <!-- Avatar / Foto -->
+                  <div style="position:relative; flex-shrink:0;">
+                    <img v-if="j.foto_url" :src="apiBase + j.foto_url" :alt="j.nombre"
+                      style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid #e2e8f0;" />
+                    <div v-else class="team-avatar" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);">
+                      {{ j.nombre?.charAt(0)?.toUpperCase() }}
+                    </div>
+                    <label v-if="auth.puedeEditar" :title="j.foto_url ? 'Cambiar foto' : 'Subir foto'"
+                      style="position:absolute;bottom:-2px;right:-2px;width:16px;height:16px;background:#6366f1;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;border:1.5px solid white;">
+                      <IconCamera :size="9" style="color:white;" />
+                      <input type="file" accept=".jpg,.jpeg,.png" style="display:none;" @change="subirFoto(j, $event)" />
+                    </label>
                   </div>
                   <div>
                     <div class="fw-semibold" style="font-size:0.875rem; color:#1e293b;">{{ j.nombre }} {{ j.apellido }}</div>
@@ -202,7 +212,9 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import api from '@/services/api'
 import { useAuthStore } from '@/store/auth'
-import { IconPlus, IconSearch, IconPencil, IconTrash, IconUsers, IconDeviceFloppy } from '@tabler/icons-vue'
+import { IconPlus, IconSearch, IconPencil, IconTrash, IconUsers, IconDeviceFloppy, IconCamera } from '@tabler/icons-vue'
+
+const apiBase = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3000'
 
 const auth     = useAuthStore()
 const jugadores  = ref([])
@@ -274,8 +286,16 @@ async function guardar() {
   const apellido = (form.value.apellido || '').trim()
   if (nombre.length < 2) { alert('El nombre debe tener al menos 2 caracteres'); return }
   if (apellido.length < 2) { alert('El apellido debe tener al menos 2 caracteres'); return }
-  if (form.value.cedula && !/^[VEve]-\d{6,8}$/.test(form.value.cedula)) {
-    alert('La cédula debe tener el formato V-00000000 o E-00000000'); return
+  if (form.value.cedula) {
+    const cedula = form.value.cedula.toUpperCase()
+    if (!/^[VE]-\d{1,8}$/.test(cedula)) {
+      alert('La cédula debe tener el formato V-00000000 o E-00000000'); return
+    }
+    const num = parseInt(cedula.split('-')[1], 10)
+    if (num < 1 || num > 34000000) {
+      alert('El número de cédula debe estar entre 1 y 34.000.000'); return
+    }
+    form.value.cedula = cedula
   }
   if (form.value.fecha_nacimiento) {
     const hoy = new Date()
@@ -293,6 +313,22 @@ async function guardar() {
   } catch (e) {
     errorModal.value = e.response?.data?.error || 'Error al guardar'
   } finally { guardando.value = false }
+}
+
+async function subirFoto(jugador, event) {
+  const file = event.target.files[0]
+  if (!file) return
+  const fd = new FormData()
+  fd.append('foto', file)
+  try {
+    const { data } = await api.post(`/jugadores/${jugador.id_jugador}/foto`, fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    jugador.foto_url = data.foto_url
+  } catch (e) {
+    alert(e.response?.data?.error || 'Error al subir la foto')
+  }
+  event.target.value = ''
 }
 
 async function confirmarEliminar(j) {

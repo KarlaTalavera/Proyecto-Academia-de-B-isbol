@@ -21,11 +21,10 @@ html, body {
 /* Brand */
 .navbar-brand { padding: 1.25rem 1rem !important; }
 .brand-logo {
-  width: 36px; height: 36px;
-  background: linear-gradient(135deg, #3b82f6, #6366f1);
+  width: 70px; height: 70px;
   border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
-  color: white; font-size: 18px; font-weight: 800; flex-shrink: 0;
+  flex-shrink: 0;
+  object-fit: contain;
 }
 .brand-text strong { font-size: 1.05rem; font-weight: 700; color: #1e293b; }
 .brand-text span   { font-size: 0.72rem; color: #64748b; display: block; }

@@ -27,21 +27,24 @@
       <!-- Playoffs coming soon -->
       <div v-if="tabActiva === 'playoffs'" class="ld-pronto-wrap">
         <span class="ld-pronto-icon">🏆</span>
-        <p class="ld-pronto-title">Próximamente</p>
-        <p class="ld-pronto-sub">Los Playoffs aún no han comenzado.</p>
+        <p class="ld-pronto-title">Playoffs — Próximamente</p>
+        <p class="ld-pronto-sub">La fase de playoffs comenzará al finalizar la temporada regular.<br/>Los 4 mejores equipos clasificarán.</p>
       </div>
 
       <!-- Temporada content -->
-      <div v-else>
+      <template v-else>
         <!-- Sub-tabs -->
         <div class="ld-subtabs-row">
           <button
             v-for="sub in subTabs"
-            :key="sub"
+            :key="sub.id"
             class="ld-subtab"
-            :class="{ 'ld-subtab--active': subTabActiva === sub }"
-            @click="subTabActiva = sub"
-          >{{ sub }}</button>
+            :class="{ 'ld-subtab--active': subTabActiva === sub.id }"
+            @click="subTabActiva = sub.id"
+          >
+            {{ sub.label }}
+            <span v-if="sub.tooltip" class="ld-subtab-info" :data-tip="sub.tooltip">ⓘ</span>
+          </button>
         </div>
 
         <!-- Loading -->
@@ -69,11 +72,14 @@
               <tr>
                 <th class="ld-th ld-th--pos">#</th>
                 <th class="ld-th ld-th--equipo">Equipo</th>
-                <th class="ld-th ld-th--stat">G</th>
-                <th class="ld-th ld-th--stat">P</th>
-                <th class="ld-th ld-th--stat">%</th>
-                <th class="ld-th ld-th--stat">JV</th>
-                <th class="ld-th ld-th--pts">PTS</th>
+                <th class="ld-th ld-th--stat"><AbrevTooltip ab="G" /></th>
+                <th class="ld-th ld-th--stat"><AbrevTooltip ab="P" /></th>
+                <th class="ld-th ld-th--stat"><AbrevTooltip ab="%" /></th>
+                <th v-if="subTabActiva === 'PUNTOS'" class="ld-th ld-th--stat"><AbrevTooltip ab="CF" /></th>
+                <th v-if="subTabActiva === 'PUNTOS'" class="ld-th ld-th--stat"><AbrevTooltip ab="CC" /></th>
+                <th v-if="subTabActiva === 'PUNTOS'" class="ld-th ld-th--stat"><AbrevTooltip ab="DIF" /></th>
+                <th v-else class="ld-th ld-th--stat"><AbrevTooltip ab="JV" /></th>
+                <th class="ld-th ld-th--pts"><AbrevTooltip ab="PTS" /></th>
               </tr>
             </thead>
             <tbody>
@@ -95,13 +101,20 @@
                 <td class="ld-td ld-td--stat">{{ equipo.ganados }}</td>
                 <td class="ld-td ld-td--stat">{{ equipo.perdidos }}</td>
                 <td class="ld-td ld-td--stat">{{ calcPct(equipo) }}</td>
-                <td class="ld-td ld-td--stat">{{ equipo.jugados }}</td>
+                <template v-if="subTabActiva === 'PUNTOS'">
+                  <td class="ld-td ld-td--stat">{{ equipo.carreras_favor }}</td>
+                  <td class="ld-td ld-td--stat">{{ equipo.carreras_contra }}</td>
+                  <td class="ld-td ld-td--stat" :style="calcDif(equipo) >= 0 ? 'color:#4ade80' : 'color:#f87171'">
+                    {{ calcDif(equipo) >= 0 ? '+' : '' }}{{ calcDif(equipo) }}
+                  </td>
+                </template>
+                <td v-else class="ld-td ld-td--stat">{{ equipo.jugados }}</td>
                 <td class="ld-td ld-td--pts">{{ calcPts(equipo) }}</td>
               </tr>
             </tbody>
           </table>
         </div>
-      </div>
+      </template>
     </div>
   </div>
 </template>
@@ -110,29 +123,57 @@
 import { ref, computed, onMounted } from 'vue'
 import LandingHeader from '@/components/landing/LandingHeader.vue'
 import api from '@/services/api'
+import AbrevTooltip from '@/components/AbrevTooltip.vue'
 
 // ── State ─────────────────────────────────────────────────────
 const tabActiva    = ref('temporada')
 const subTabActiva = ref('GENERAL')
-const subTabs      = ['GENERAL', '1V', '2V', 'PUNTOS']
-const posiciones   = ref([])
+const subTabs = [
+  { id: 'GENERAL', label: 'GENERAL', tooltip: null },
+  { id: '1V',     label: '1V',      tooltip: 'Primera Vuelta — Posiciones de la primera mitad de la temporada regular' },
+  { id: '2V',     label: '2V',      tooltip: 'Segunda Vuelta — Posiciones de la segunda mitad de la temporada regular' },
+  { id: 'PUNTOS', label: 'PUNTOS',  tooltip: null },
+]
 const cargando     = ref(true)
 const error        = ref(false)
 
-// ── Computed: sort by ganados desc ────────────────────────────
-const posicionesOrdenadas = computed(() =>
-  [...posiciones.value].sort((a, b) => b.ganados - a.ganados || a.perdidos - b.perdidos)
-)
+const datosGeneral = ref([])
+const datos1V      = ref([])
+const datos2V      = ref([])
+
+// ── Datos según sub-tab activa ────────────────────────────────
+const posiciones = computed(() => {
+  if (subTabActiva.value === '1V') return datos1V.value
+  if (subTabActiva.value === '2V') return datos2V.value
+  return datosGeneral.value
+})
+
+// ── Ordenamiento según sub-tab ────────────────────────────────
+const posicionesOrdenadas = computed(() => {
+  const lista = [...posiciones.value]
+  if (subTabActiva.value === 'PUNTOS') {
+    // Ordenar por diferencial de carreras como desempate
+    return lista.sort((a, b) =>
+      b.ganados - a.ganados ||
+      (b.carreras_favor - b.carreras_contra) - (a.carreras_favor - a.carreras_contra)
+    )
+  }
+  return lista.sort((a, b) => b.ganados - a.ganados || a.perdidos - b.perdidos)
+})
 
 // ── Helpers ───────────────────────────────────────────────────
 function calcPct(e) {
   const j = e.jugados || (e.ganados + e.perdidos)
-  if (!j || j === 0) return '.000'
+  if (!j) return '.000'
   return (e.ganados / j).toFixed(3)
 }
 
 function calcPts(e) {
   return e.ganados * 2
+}
+
+function calcDif(e) {
+  return (e.carreras_favor || 0) - (e.carreras_contra || 0)
 }
 
 function posBadgeClass(pos) {
@@ -147,8 +188,14 @@ async function cargar() {
   cargando.value = true
   error.value    = false
   try {
-    const res       = await api.get('/pub/posiciones')
-    posiciones.value = res.data
+    const [resG, res1, res2] = await Promise.all([
+      api.get('/pub/posiciones'),
+      api.get('/pub/posiciones?vuelta=1'),
+      api.get('/pub/posiciones?vuelta=2'),
+    ])
+    datosGeneral.value = resG.data
+    datos1V.value      = res1.data
+    datos2V.value      = res2.data
   } catch {
     error.value = true
   } finally {
@@ -160,6 +207,12 @@ onMounted(cargar)
 </script>
 
 <style scoped>
+/* ── AbrevTooltip override for dark/gold header ─────────── */
+.ld-th :deep(.abrev-tip) {
+  border-bottom-color: rgba(33, 1, 0, 0.45);
+  color: inherit;
+}
+
 /* ── Normalize Bootstrap interference ────────────────────── */
 .ld-page *, .ld-page *::before, .ld-page *::after { box-sizing: border-box; }
 .ld-page p  { margin: 0; padding: 0; }
@@ -476,5 +529,42 @@ onMounted(cargar)
 @media (max-width: 480px) {
   .ld-team-cell-name { max-width: 120px; font-size: 0.78rem; }
   .ld-td { padding: 0.65rem 0.5rem; }
+}
+
+/* ── Sub-tab info tooltip ─────────────────────────────────── */
+.ld-subtab-info {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+  font-size: 0.7rem;
+  opacity: 0.6;
+  cursor: help;
+  vertical-align: middle;
+}
+
+.ld-subtab-info::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1e293b;
+  color: #f8fafc;
+  font-size: 0.7rem;
+  font-weight: 400;
+  line-height: 1.4;
+  padding: 6px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 100;
+}
+
+.ld-subtab-info:hover::after {
+  opacity: 1;
 }
 </style>

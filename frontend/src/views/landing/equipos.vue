@@ -84,8 +84,8 @@
 
               <!-- Si existe el logo lo muestra, si no muestra iniciales SVG -->
               <img
-                v-if="logoExists(team.id_equipo)"
-                :src="logoSrc(team.id_equipo)"
+                v-if="logoExists(team)"
+                :src="logoSrc(team)"
                 :alt="team.nombre_equipo"
                 class="eq-card__logo-img"
                 @error="onLogoError(team.id_equipo)"
@@ -146,8 +146,8 @@
             <!-- Logo modal -->
             <div class="eq-modal__logo-wrap">
               <img
-                v-if="logoExists(selected.id_equipo)"
-                :src="logoSrc(selected.id_equipo)"
+                v-if="logoExists(selected)"
+                :src="logoSrc(selected)"
                 :alt="selected.nombre_equipo"
                 class="eq-modal__logo-img"
                 @error="onLogoError(selected.id_equipo)"
@@ -171,6 +171,7 @@
           </div>
 
           <div class="eq-modal__body">
+            <!-- Info general -->
             <div class="eq-modal__grid">
               <div class="eq-modal__item">
                 <span class="eq-modal__lbl">Director Técnico</span>
@@ -180,26 +181,41 @@
                 <span class="eq-modal__lbl">Responsable</span>
                 <span class="eq-modal__val">{{ selected.responsable }}</span>
               </div>
-              <div class="eq-modal__item">
-                <span class="eq-modal__lbl">Correo</span>
-                <span class="eq-modal__val">{{ selected.email || '—' }}</span>
+            </div>
+
+            <!-- Record de la temporada -->
+            <div v-if="detalleEquipo" class="eq-modal__record">
+              <div class="eq-modal__record-item">
+                <span class="eq-modal__record-val" style="color:#4ade80;">{{ detalleEquipo.record.ganados }}</span>
+                <span class="eq-modal__record-lbl">GANADOS</span>
               </div>
-              <div class="eq-modal__item">
-                <span class="eq-modal__lbl">Teléfono</span>
-                <span class="eq-modal__val">{{ selected.telefono || '—' }}</span>
+              <div class="eq-modal__record-sep">-</div>
+              <div class="eq-modal__record-item">
+                <span class="eq-modal__record-val" style="color:#f87171;">{{ detalleEquipo.record.perdidos }}</span>
+                <span class="eq-modal__record-lbl">PERDIDOS</span>
               </div>
-              <div class="eq-modal__item">
-                <span class="eq-modal__lbl">Jugadores</span>
-                <span class="eq-modal__val">10 registrados</span>
-              </div>
-              <div class="eq-modal__item">
-                <span class="eq-modal__lbl">Temporada</span>
-                <span class="eq-modal__val">Clausura 2026</span>
+              <div class="eq-modal__record-sep">·</div>
+              <div class="eq-modal__record-item">
+                <span class="eq-modal__record-val">{{ detalleEquipo.record.jugados }}</span>
+                <span class="eq-modal__record-lbl">JUGADOS</span>
               </div>
             </div>
 
-            <div v-if="!logoExists(selected.id_equipo)" class="eq-modal__logo-note">
-              📁 No se encontró el logo para este equipo en <strong>/public/logos/</strong>
+            <!-- Plantilla -->
+            <div v-if="cargandoDetalle" class="eq-modal__loading">Cargando plantilla...</div>
+            <div v-else-if="detalleEquipo?.jugadores?.length">
+              <p class="eq-modal__roster-title">PLANTILLA ({{ detalleEquipo.jugadores.length }} jugadores)</p>
+              <div class="eq-modal__roster">
+                <div v-for="j in detalleEquipo.jugadores" :key="j.id_jugador" class="eq-modal__player">
+                  <img v-if="j.foto_url" :src="apiBase + j.foto_url" :alt="j.nombre"
+                    style="width:30px;height:30px;border-radius:50%;object-fit:cover;flex-shrink:0;" />
+                  <div v-else class="eq-modal__player-avatar">{{ j.nombre?.charAt(0) }}</div>
+                  <div>
+                    <div class="eq-modal__player-name">{{ j.nombre }} {{ j.apellido }}</div>
+                    <div class="eq-modal__player-pos">{{ j.posicion }} · {{ j.rol }}</div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -213,53 +229,40 @@ import { ref, computed, onMounted } from 'vue'
 import api from '@/services/api'
 import LandingHeader from '@/components/landing/LandingHeader.vue'
 
+const apiBase = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3000'
+
 // ── Estado ──
-const equipos   = ref([])
-const cargando  = ref(true)
-const error     = ref(null)
-const selected  = ref(null)
+const equipos       = ref([])
+const cargando      = ref(true)
+const error         = ref(null)
+const selected      = ref(null)
 const selectedIndex = ref(0)
+// Detalles del equipo seleccionado (plantilla + record)
+const detalleEquipo    = ref(null)
+const cargandoDetalle  = ref(false)
 
 // IDs de logos que fallaron al cargar
 const logosFallidos = ref(new Set())
-
-// ── Mapa de logos por id_equipo ──
-const logoMap = {
-  1: '/logos/leones.jpg',
-  2: '/logos/tigres-de-aragua-l.png',
-  3: '/logos/aguilas-del-zulia.png',
-  4: '/logos/Magallanes_B.B.C.png',
-  5: '/logos/CaribesBBC_Anzoátegui.png',
-  6: '/logos/bravos-de-margarita.png',
-  7: '/logos/cardenales.JPG',
-  8: '/logos/tiburones-de-la-guaira-.png',
-}
 
 // ── Colores por índice ──
 const colores = [
   '#E8B84B', '#E85D1A', '#5B9BD5', '#4ECDC4',
   '#A8E063', '#FF6B9D', '#E84545', '#7B8CE4',
 ]
-const teamColor = (i) => colores[i % colores.length]
+const teamColor     = (i) => colores[i % colores.length]
 const selectedColor = computed(() => teamColor(selectedIndex.value))
 
 // ── Helpers ──
 function initials(name) {
-  return name
-    .split(' ')
-    .filter(w => w.length > 2)
-    .slice(0, 2)
-    .map(w => w[0])
-    .join('')
-    .toUpperCase()
+  return name.split(' ').filter(w => w.length > 2).slice(0, 2).map(w => w[0]).join('').toUpperCase()
 }
 
-function logoSrc(id) {
-  return logoMap[id] || null
+function logoSrc(equipo) {
+  return equipo.logo_url ? apiBase + equipo.logo_url : null
 }
 
-function logoExists(id) {
-  return !!logoMap[id] && !logosFallidos.value.has(id)
+function logoExists(equipo) {
+  return !!equipo.logo_url && !logosFallidos.value.has(equipo.id_equipo)
 }
 
 function onLogoError(id) {
@@ -267,13 +270,25 @@ function onLogoError(id) {
 }
 
 // ── Modal ──
-function openModal(team, index) {
+async function openModal(team, index) {
   selected.value      = team
   selectedIndex.value = index
+  detalleEquipo.value = null
   document.body.style.overflow = 'hidden'
+  // Cargar detalle con plantilla y record
+  cargandoDetalle.value = true
+  try {
+    const { data } = await api.get(`/pub/equipos-liga/${team.id_equipo}`)
+    detalleEquipo.value = data
+  } catch {
+    detalleEquipo.value = null
+  } finally {
+    cargandoDetalle.value = false
+  }
 }
 function closeModal() {
   selected.value = null
+  detalleEquipo.value = null
   document.body.style.overflow = ''
 }
 
@@ -636,13 +651,54 @@ onMounted(cargarEquipos)
 }
 .eq-modal__val { font-size: 14px; color: white; }
 
-.eq-modal__logo-note {
-  background: rgba(212,175,55,0.06);
-  border: 1px solid rgba(212,175,55,0.15);
-  border-radius: 10px; padding: 14px 16px;
-  font-size: 12px; color: var(--txt-dim); line-height: 1.6;
+/* ── Record ── */
+.eq-modal__record {
+  display: flex; align-items: center; justify-content: center; gap: 16px;
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px; padding: 14px; margin-bottom: 20px;
 }
-.eq-modal__logo-note strong { color: var(--gold); }
+.eq-modal__record-item { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.eq-modal__record-val {
+  font-family: 'Bebas Neue', sans-serif; font-size: 28px; line-height: 1; color: white;
+}
+.eq-modal__record-lbl {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 9px; font-weight: 700; letter-spacing: 2px;
+  color: var(--txt-dim); text-transform: uppercase;
+}
+.eq-modal__record-sep { font-size: 20px; color: var(--txt-dim); font-weight: 700; }
+
+/* ── Roster ── */
+.eq-modal__roster-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 10px; font-weight: 700; letter-spacing: 3px;
+  color: var(--gold); text-transform: uppercase; margin: 0 0 10px;
+}
+.eq-modal__roster {
+  display: flex; flex-direction: column; gap: 6px;
+  max-height: 220px; overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+}
+.eq-modal__player {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 10px; border-radius: 8px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.04);
+}
+.eq-modal__player-avatar {
+  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+  background: rgba(212,175,55,0.15); border: 1px solid rgba(212,175,55,0.2);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Bebas Neue', sans-serif; font-size: 14px; color: var(--gold);
+}
+.eq-modal__player-name { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.85); }
+.eq-modal__player-pos {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 10px; color: var(--txt-dim); text-transform: uppercase; letter-spacing: 1px;
+}
+.eq-modal__loading {
+  text-align: center; color: var(--txt-dim); font-size: 13px; padding: 20px 0;
+}
 
 /* ── Transitions ── */
 .eq-fade-enter-active, .eq-fade-leave-active { transition: opacity 0.25s ease; }
