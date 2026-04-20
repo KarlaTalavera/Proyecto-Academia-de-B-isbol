@@ -102,11 +102,11 @@
               <tr>
                 <th class="st-pos">#</th>
                 <th class="st-team">Equipo</th>
-                <th>JJ</th>
-                <th>G</th>
-                <th>P</th>
-                <th>CF</th>
-                <th class="st-pct">PCT</th>
+                <th><AbrevTooltip ab="JJ" /></th>
+                <th><AbrevTooltip ab="G" /></th>
+                <th><AbrevTooltip ab="P" /></th>
+                <th><AbrevTooltip ab="CF" /></th>
+                <th class="st-pct"><AbrevTooltip ab="PCT" /></th>
               </tr>
             </thead>
             <tbody>
@@ -210,6 +210,7 @@ import { ref, computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import api from '@/services/api'
 import { useAuthStore } from '@/store/auth'
+import AbrevTooltip from '@/components/AbrevTooltip.vue'
 import {
   IconUsers,
   IconCalendarEvent,

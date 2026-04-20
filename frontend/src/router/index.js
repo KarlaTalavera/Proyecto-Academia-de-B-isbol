@@ -19,7 +19,8 @@ const routes = [
        { path: 'informacion', name: 'LandingInformacion', component: () => import('@/views/landing/informacion.vue') },
   { path: 'equipos',     name: 'LandingEquipos',     component: () => import('@/views/landing/equipos.vue') },
   { path: 'alineacion',  name: 'LandingAlineacion',  component: () => import('@/views/landing/alineacion.vue') },
-  { path: 'jugadores',   name: 'LandingJugadores',   component: () => import('@/views/landing/jugadores.vue') },
+  { path: 'jugadores',      name: 'LandingJugadores',     component: () => import('@/views/landing/jugadores.vue') },
+      { path: 'liga-jugadores', name: 'LandingLigaJugadores', component: () => import('@/views/landing/LigaJugadoresView.vue') },
     ],
   },
 
@@ -47,11 +48,14 @@ const routes = [
       { path: 'equipos',   name: 'Equipos',   component: () => import('@/views/equipos/EquiposView.vue') },
       { path: 'jugadores', name: 'Jugadores', component: () => import('@/views/jugadores/JugadoresView.vue') },
       { path: 'partidos',  name: 'Partidos',  component: () => import('@/views/partidos/PartidosView.vue') },
-      { path: 'reportes',       name: 'Reportes',       component: () => import('@/views/reportes/ReportesView.vue') },
-      { path: 'reportes/origen-ingresos', name: 'ReporteOrigenIngresos', component: () => import('@/views/reportes/ReporteOrigenIngresosView.vue') },
-      { path: 'reportes/historico-ingresos', name: 'ReporteHistoricoIngresos', component: () => import('@/views/reportes/ReporteHistoricoIngresosView.vue') },
-      { path: 'reportes/efectividad-pitcheo', name: 'ReporteEfectividadPitcheo', component: () => import('@/views/reportes/ReporteEfectividadPitcheoView.vue') },
+      { path: 'reportes', name: 'Reportes', component: () => import('@/views/reportes/ReportesView.vue'), meta: { soloReportes: true } },
+      { path: 'reportes/origen-ingresos',    redirect: '/app/reportes' },
+      { path: 'reportes/historico-ingresos', redirect: '/app/reportes' },
+      { path: 'reportes/efectividad-pitcheo',redirect: '/app/reportes' },
+      { path: 'reportes/taquilla',           redirect: '/app/reportes' },
+      { path: 'reportes/bateadores',         redirect: '/app/reportes' },
       { path: 'sanciones',     name: 'Sanciones',     component: () => import('@/views/sanciones/SancionesView.vue') },
+      { path: 'noticias',      name: 'NoticiasAdmin', component: () => import('@/views/noticias/NoticiasAdminView.vue'), meta: { soloDueno: true } },
       { path: 'inscripciones', name: 'Inscripciones', component: () => import('@/views/inscripciones/InscripcionesView.vue') },
       { path: 'proveedores',   name: 'Proveedores',   component: () => import('@/views/proveedores/ProveedoresView.vue') },
       { path: 'temporadas',    name: 'Temporadas',    component: () => import('@/views/temporadas/TemporadasView.vue'), meta: { soloAdmin: true } },
@@ -88,6 +92,7 @@ router.beforeEach((to) => {
   const bloqueaPublico  = to.matched.some(r => r.meta.bloqueaPublico)
   const soloPublico     = to.matched.some(r => r.meta.soloPublico)
   const soloAdmin       = to.matched.some(r => r.meta.soloAdmin)
+  const soloReportes    = to.matched.some(r => r.meta.soloReportes)
 
   // Sin sesión intentando acceder a zona protegida → landing
   if (!esPublico && !auth.token) return { name: 'LandingInicio' }
@@ -109,6 +114,15 @@ router.beforeEach((to) => {
 
   // Solo admin puede ver ciertas vistas
   if (soloAdmin && auth.rol !== 'administrador') return { name: 'Dashboard' }
+
+  // Noticias: solo administrador y dueno
+  const soloDueno = to.matched.some(r => r.meta.soloDueno)
+  if (soloDueno && !['administrador', 'dueno'].includes(auth.rol)) return { name: 'Dashboard' }
+
+  // Reportes: solo administrador, dueno y caja (no anotador)
+  if (soloReportes && !['administrador', 'dueno', 'caja'].includes(auth.rol)) {
+    return { name: 'Dashboard' }
+  }
 })
 
 export default router

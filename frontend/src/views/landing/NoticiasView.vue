@@ -48,13 +48,14 @@
                 class="nv-card"
               >
                 <div class="nv-card-img-wrap">
-                  <img :src="item.imagen" :alt="item.titulo" class="nv-card-img" loading="lazy" />
-                  <span class="nv-badge">Destacado</span>
+                  <img v-if="item.foto_url" :src="apiBase + item.foto_url" :alt="item.titulo" class="nv-card-img" loading="lazy" />
+                  <div v-else class="nv-card-img-placeholder">⚾</div>
+                  <span class="nv-badge">Liga Diamante</span>
                 </div>
                 <div class="nv-card-body">
                   <h3 class="nv-card-title">{{ item.titulo }}</h3>
-                  <p class="nv-card-meta">{{ item.lugar }} &bull; {{ item.fuente }}</p>
-                  <p class="nv-card-summary">{{ item.resumen }}</p>
+                  <p class="nv-card-meta">{{ formatFecha(item.fecha_publicacion) }}</p>
+                  <p class="nv-card-summary">{{ item.contenido }}</p>
                 </div>
               </article>
             </div>
@@ -86,90 +87,38 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import LandingHeader from '@/components/landing/LandingHeader.vue'
+import api from '@/services/api'
 
-const loading = ref(true)
-const offset = ref(0)
-const viewport = ref(null)
+const apiBase      = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3000'
+const loading      = ref(true)
+const offset       = ref(0)
+const viewport     = ref(null)
+const noticias     = ref([])
 
-const cardWidth = 320
-const gap = 24
+const cardWidth    = 320
+const gap          = 24
 const visibleCards = 3
 
-const noticias = [
-  {
-    titulo: 'Leones del Caracas se corona campeón de la LVBP 2025-2026',
-    imagen: '/recursos/1.jpg',
-    lugar: 'Caracas, Venezuela',
-    fuente: 'LVBP Oficial',
-    resumen: 'Los Leones del Caracas conquistaron su título número 18 en la Liga Venezolana de Béisbol Profesional tras vencer a los Navegantes del Magallanes en una serie final de siete juegos que mantuvo al país en vilo.',
-  },
-  {
-    titulo: 'Tigres de Aragua refuerzan su rotación para el round robin',
-    imagen: '/recursos/2.jpg',
-    lugar: 'Maracay, Venezuela',
-    fuente: 'Beisbol de Venezuela',
-    resumen: 'La directiva de los Tigres de Aragua anunció la firma de dos serpentineros nacionales procedentes de la academia, buscando consolidar su plantel previo a la fase decisiva del torneo.',
-  },
-  {
-    titulo: 'Cardenales de Lara celebran 60 años de historia peloteril',
-    imagen: '/recursos/3.jpeg',
-    lugar: 'Barquisimeto, Venezuela',
-    fuente: 'El Informador',
-    resumen: 'El equipo barquisimetano conmemoró seis décadas de béisbol con un acto en el estadio Antonio Herrera Gutiérrez, donde leyendas del club compartieron con los aficionados larenses.',
-  },
-  {
-    titulo: 'Venezuela clasifica al Clásico Mundial con récord invicto',
-    imagen: '/recursos/4.jpg',
-    lugar: 'Caracas, Venezuela',
-    fuente: 'LVBP Oficial',
-    resumen: 'La selección nacional de béisbol cerró su fase clasificatoria con marca perfecta de seis victorias y cero derrotas, generando gran expectativa entre la fanaticada criolla de cara al torneo internacional.',
-  },
-  {
-    titulo: 'Navegantes del Magallanes anuncian nueva directiva técnica',
-    imagen: '/recursos/5.jpg',
-    lugar: 'Valencia, Venezuela',
-    fuente: 'Meridiano',
-    resumen: 'Los Navegantes del Magallanes presentaron a su nuevo cuerpo técnico encabezado por un reconocido estratega venezolano con experiencia en ligas del Caribe y torneos internacionales.',
-  },
-  {
-    titulo: 'Estadio de Barquisimeto completará remodelación para la próxima temporada',
-    imagen: '/recursos/6.jpg',
-    lugar: 'Barquisimeto, Venezuela',
-    fuente: 'El Impulso',
-    resumen: 'Las obras de mejora del estadio Antonio Herrera Gutiérrez avanzan a buen ritmo y se espera que estén listas para el inicio de la próxima temporada de la LVBP, ofreciendo mayor comodidad a los fanáticos.',
-  },
-  {
-    titulo: 'Jóvenes peloteros venezolanos destacan en torneos juveniles del Caribe',
-    imagen: '/recursos/7.jpg',
-    lugar: 'Caracas, Venezuela',
-    fuente: 'Béisbol de Venezuela',
-    resumen: 'Varios prospectos venezolanos menores de 18 años se robaron los reflectores en el torneo juvenil del Caribe, despertando el interés de academias de béisbol de la región.',
-    resumen: 'Las Estrellas Orientales sellaron su clasificación a la final de la Serie del Caribe tras derrotar a las Águilas Cibaeñas en un duelo que se extendió hasta el décimo inning.',
-  },
-  {
-    titulo: 'Nuevas reglas de tiempo buscan agilizar los juegos',
-    imagen: '/recursos/3.jpeg',
-    lugar: 'Nueva York, EUA',
-    fuente: 'MLB Oficina del Comisionado',
-    resumen: 'Las Grandes Ligas anunciaron ajustes al reloj de lanzamiento y normas de pickoff para la temporada 2026, con el objetivo de mantener la duración promedio de juego por debajo de las 2 horas y 45 minutos.',
-  },
-]
+const maxOffset = computed(() => Math.max(0, noticias.value.length - visibleCards))
+const dotCount  = computed(() => maxOffset.value + 1)
 
-const maxOffset = computed(() => Math.max(0, noticias.length - visibleCards))
-const dotCount = computed(() => maxOffset.value + 1)
+function prev() { if (offset.value > 0) offset.value-- }
+function next() { if (offset.value < maxOffset.value) offset.value++ }
 
-function prev() {
-  if (offset.value > 0) offset.value--
+function formatFecha(f) {
+  if (!f) return ''
+  return new Date(f).toLocaleDateString('es-VE', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
-function next() {
-  if (offset.value < maxOffset.value) offset.value++
-}
-
-onMounted(() => {
-  setTimeout(() => {
+onMounted(async () => {
+  try {
+    const { data } = await api.get('/pub/noticias')
+    noticias.value = data
+  } catch {
+    noticias.value = []
+  } finally {
     loading.value = false
-  }, 600)
+  }
 })
 </script>
 
@@ -297,6 +246,12 @@ onMounted(() => {
   object-fit: cover;
   display: block;
   transition: transform 0.4s ease;
+}
+
+.nv-card-img-placeholder {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 48px; background: #f1f5f9;
 }
 
 .nv-card:hover .nv-card-img {

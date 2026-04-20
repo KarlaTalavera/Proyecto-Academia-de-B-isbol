@@ -1,7 +1,7 @@
 <template>
   <div>
     <!-- ── Encabezado de página ── -->
-    <div class="page-header d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <div v-if="!props.embedded" class="page-header d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
       <div>
         <h2 class="page-title">Reporte de Efectividad de Pitcheo</h2>
         <p class="page-subtitle">Estadísticas individuales de lanzadores agrupadas por equipo</p>
@@ -43,7 +43,7 @@
                 </span>
                 <div class="stat-text">
                   <div class="fw-medium text-muted stat-label">Total Lanzadores</div>
-                  <div class="fw-bold stat-value" style="color:#6366f1;">{{ pitchers.length }}</div>
+                  <div class="fw-bold stat-value" style="color:#6366f1;">{{ pitchersFiltrados.length }}</div>
                 </div>
               </div>
             </div>
@@ -101,6 +101,18 @@
             </span>
 
             <div class="ms-auto d-flex align-items-center gap-2 flex-wrap">
+              <FiltroMultiSelect
+                v-model="equiposSeleccionados"
+                :opciones="equipos"
+                texto-todos="Todos los equipos"
+                plural-label="equipos"
+              />
+              <FiltroMultiSelect
+                v-model="lanzadoresSeleccionados"
+                :opciones="lanzadores"
+                texto-todos="Todos los lanzadores"
+                plural-label="lanzadores"
+              />
               <label class="d-flex align-items-center gap-1 mb-0" style="font-size:0.82rem; cursor:pointer;">
                 <input type="checkbox" v-model="mostrarGrafico" class="form-check-input mt-0" />
                 <span class="text-muted">Mostrar gráfico</span>
@@ -119,13 +131,52 @@
           <div class="card-body">
             <div class="row g-4 align-items-start">
 
-              <!-- Gráfico de barras ERA -->
-              <div v-show="mostrarGrafico" class="col-md-5 text-center">
-                <div class="fw-semibold mb-2" style="font-size:0.82rem; color:#1e293b;">
-                  Ranking de Efectividad (ERA) — menor es mejor
+              <!-- Gráfico horizontal ERA + K -->
+              <div v-show="mostrarGrafico" class="col-md-5">
+                <div class="fw-semibold mb-1" style="font-size:0.82rem; color:#1e293b;">
+                  Ranking de ERA — mejores lanzadores
                 </div>
-                <canvas ref="canvasBar" style="width:100%; max-height:340px;"></canvas>
-                <div class="text-muted mt-1" style="font-size:0.72rem;">Top 10 lanzadores con más innings</div>
+                <div class="d-flex justify-content-between text-muted mb-1" style="font-size:0.7rem; padding:0 4px 0 120px;">
+                  <span>ERA →</span>
+                  <span>K (ponches)</span>
+                </div>
+                <div ref="barContainer" style="position:relative;">
+                  <canvas
+                    ref="canvasBar"
+                    style="width:100%; display:block; cursor:crosshair;"
+                    @mousemove="onBarMouseMove"
+                    @mouseleave="onBarMouseLeave"
+                  ></canvas>
+                  <div v-if="barTooltip.visible && barTooltip.pitcher" :style="`
+                    position:absolute;
+                    left:${barTooltip.x}px;
+                    top:${barTooltip.y}px;
+                    background:#1e293b;
+                    color:#fff;
+                    border-radius:8px;
+                    padding:8px 12px;
+                    font-size:0.78rem;
+                    pointer-events:none;
+                    white-space:nowrap;
+                    box-shadow:0 4px 16px rgba(0,0,0,0.25);
+                    z-index:10;
+                    transform:translate(-50%,-100%);
+                  `">
+                    <div class="fw-bold mb-1">{{ barTooltip.pitcher.jugador }}</div>
+                    <div>ERA: <span class="fw-bold" style="color:#f59e0b;">{{ Number(barTooltip.pitcher.ERA).toFixed(2) }}</span></div>
+                    <div style="color:#94a3b8;">
+                      {{ Number(barTooltip.pitcher.IP) }} IP &nbsp;·&nbsp;
+                      {{ Number(barTooltip.pitcher.K) }} K &nbsp;·&nbsp;
+                      {{ barTooltip.pitcher.W }}W – {{ barTooltip.pitcher.L }}L
+                    </div>
+                  </div>
+                </div>
+                <div class="d-flex gap-3 mt-2 flex-wrap" style="font-size:0.7rem;">
+                  <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#10b981;margin-right:4px;"></span>ERA &lt; 2.00</span>
+                  <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#3b82f6;margin-right:4px;"></span>ERA &lt; 4.00</span>
+                  <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#f59e0b;margin-right:4px;"></span>ERA &lt; 6.00</span>
+                  <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#ef4444;margin-right:4px;"></span>ERA ≥ 6.00</span>
+                </div>
               </div>
 
               <!-- Tabla agrupada por equipo -->
@@ -146,13 +197,13 @@
                         <thead>
                           <tr>
                             <th>Lanzador</th>
-                            <th class="text-center">JJ</th>
-                            <th class="text-center">IP</th>
-                            <th class="text-center">ER</th>
-                            <th class="text-center">K</th>
-                            <th class="text-center">W</th>
-                            <th class="text-center">L</th>
-                            <th class="text-center fw-bold">ERA</th>
+                            <th class="text-center"><AbrevTooltip ab="JJ" /></th>
+                            <th class="text-center"><AbrevTooltip ab="IP" /></th>
+                            <th class="text-center"><AbrevTooltip ab="ER" /></th>
+                            <th class="text-center text-warning"><AbrevTooltip ab="K" /></th>
+                            <th class="text-center text-success"><AbrevTooltip ab="W" /></th>
+                            <th class="text-center text-danger"><AbrevTooltip ab="L" /></th>
+                            <th class="text-center fw-bold"><AbrevTooltip ab="ERA" /></th>
                           </tr>
                         </thead>
                         <tbody>
@@ -192,8 +243,14 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick, onMounted } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, defineProps } from 'vue'
+const props = defineProps({
+  embedded:     { type: Boolean, default: false },
+  temporadaSel: { type: [String, Number], default: '' },
+})
 import api from '@/services/api'
+import FiltroMultiSelect from '@/components/FiltroMultiSelect.vue'
+import AbrevTooltip from '@/components/AbrevTooltip.vue'
 import {
   IconFlame, IconUsers, IconTrophy, IconChartBar,
   IconFileTypePdf, IconFileSpreadsheet,
@@ -205,10 +262,16 @@ import { saveAs } from 'file-saver'
 
 const temporadas    = ref([])
 const temporadaId   = ref('')
+watch(() => props.temporadaSel, val => { if (props.embedded && val) { temporadaId.value = val; cargar() } }, { immediate: false })
 const cargando      = ref(false)
 const pitchers      = ref([])
 const mostrarGrafico = ref(true)
-const canvasBar     = ref(null)
+const canvasBar      = ref(null)
+const barContainer   = ref(null)
+const hoveredBar              = ref(-1)
+const barTooltip              = ref({ visible: false, x: 0, y: 0, pitcher: null })
+const equiposSeleccionados    = ref([])
+const lanzadoresSeleccionados = ref([])
 
 const fechaGeneracion = computed(() =>
   new Date().toLocaleString('es-VE', { dateStyle: 'medium', timeStyle: 'short' })
@@ -219,17 +282,35 @@ const temporadaNombre = computed(() => {
   return t ? `${t.nombre} (${t.anio})` : ''
 })
 
+const equipos    = computed(() => [...new Set(pitchers.value.map(p => p.nombre_equipo))].filter(Boolean).sort())
+const lanzadores = computed(() => [...new Set(pitchers.value.map(p => p.jugador))].filter(Boolean).sort())
+
+const pitchersFiltrados = computed(() => {
+  const porEquipo   = equiposSeleccionados.value.length > 0
+  const porLanzador = lanzadoresSeleccionados.value.length > 0
+
+  // Sin ningún filtro → todos
+  if (!porEquipo && !porLanzador) return pitchers.value
+
+  return pitchers.value.filter(p => {
+    // OR: aparece si coincide con el filtro de equipos O con el de lanzadores
+    const matchEquipo   = porEquipo   && equiposSeleccionados.value.includes(p.nombre_equipo)
+    const matchLanzador = porLanzador && lanzadoresSeleccionados.value.includes(p.jugador)
+    return matchEquipo || matchLanzador
+  })
+})
+
 const mejorERA = computed(() => {
-  const vals = pitchers.value.map(p => p.ERA).filter(v => v !== null && v !== undefined)
+  const vals = pitchersFiltrados.value.map(p => Number(p.ERA)).filter(v => !isNaN(v))
   return vals.length ? Math.min(...vals) : null
 })
 
-const totalK = computed(() => pitchers.value.reduce((s, p) => s + (p.K || 0), 0))
-const totalIP = computed(() => pitchers.value.reduce((s, p) => s + (p.IP || 0), 0))
+const totalK  = computed(() => pitchersFiltrados.value.reduce((s, p) => s + Number(p.K  || 0), 0))
+const totalIP = computed(() => pitchersFiltrados.value.reduce((s, p) => s + Number(p.IP || 0), 0))
 
 const pitchersPorEquipo = computed(() => {
   const mapa = {}
-  for (const p of pitchers.value) {
+  for (const p of pitchersFiltrados.value) {
     const eq = p.nombre_equipo || 'Sin equipo'
     if (!mapa[eq]) mapa[eq] = []
     mapa[eq].push(p)
@@ -255,127 +336,166 @@ async function cargar() {
       params: { temporada: temporadaId.value },
     })
     pitchers.value = data
-    if (mostrarGrafico.value) {
-      await nextTick()
-      dibujarBarras()
-    }
   } finally {
     cargando.value = false
+  }
+  // Dibujar DESPUÉS de que cargando=false actualice el DOM (canvas visible)
+  if (mostrarGrafico.value && pitchers.value.length) {
+    await nextTick()
+    requestAnimationFrame(() => dibujarBarras())
   }
 }
 
 async function cargarTemporadas() {
   const { data } = await api.get('/temporadas')
   temporadas.value = data
-  const activa = data.find(t => t.activa)
-  if (activa) {
-    temporadaId.value = activa.id_temporada
-    cargar()
+  if (props.embedded && props.temporadaSel) {
+    temporadaId.value = props.temporadaSel; cargar()
+  } else {
+    const activa = data.find(t => t.activa)
+    if (activa) { temporadaId.value = activa.id_temporada; cargar() }
   }
+}
+
+function _dibujarBarrasEnCanvas(canvas, W, data, hoveredIdx = -1) {
+  const top = [...data]
+    .filter(p => p.IP > 0 && p.ERA !== null && p.ERA !== undefined)
+    .sort((a, b) => (a.ERA ?? 99) - (b.ERA ?? 99))
+    .slice(0, 12)
+
+  if (!top.length) return
+
+  const ROW_H  = 36
+  const PAD_L  = 115
+  const PAD_R  = 56
+  const PAD_T  = 4
+  const H      = PAD_T + top.length * ROW_H + 4
+  const chartW = W - PAD_L - PAD_R
+
+  canvas.width  = W
+  canvas.height = H
+
+  const ctx    = canvas.getContext('2d')
+  ctx.clearRect(0, 0, W, H)
+
+  const maxERA = Math.max(...top.map(p => p.ERA ?? 0), 0.1) * 1.15
+
+  top.forEach((p, i) => {
+    const era       = Number(p.ERA ?? 0)
+    const rowY      = PAD_T + i * ROW_H
+    const isHovered = i === hoveredIdx
+    const barH      = ROW_H - (isHovered ? 6 : 10)
+    const barY      = rowY + (isHovered ? 3 : 5)
+    const barW      = Math.max((era / maxERA) * chartW, 3)
+
+    let color
+    if (era < 2.0)      color = '#10b981'
+    else if (era < 4.0) color = '#3b82f6'
+    else if (era < 6.0) color = '#f59e0b'
+    else                color = '#ef4444'
+
+    // Fondo de fila — más destacado al hacer hover
+    ctx.fillStyle = isHovered ? color + '14' : (i % 2 === 0 ? '#f8fafc' : '#ffffff')
+    ctx.fillRect(0, rowY, W, ROW_H)
+
+    // Borde izquierdo de fila al hacer hover
+    if (isHovered) {
+      ctx.fillStyle = color
+      ctx.fillRect(0, rowY, 3, ROW_H)
+    }
+
+    // Nombre
+    const apellido = (p.jugador ?? '').split(' ').slice(-1)[0]
+    ctx.fillStyle    = isHovered ? color : '#1e293b'
+    ctx.font         = isHovered ? 'bold 11px sans-serif' : '11px sans-serif'
+    ctx.textAlign    = 'right'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(apellido, PAD_L - 10, rowY + ROW_H / 2)
+
+    // Barra — relleno suave
+    ctx.fillStyle = color + (isHovered ? '55' : '28')
+    ctx.fillRect(PAD_L, barY, barW, barH)
+
+    // Acento izquierdo de la barra
+    ctx.fillStyle = color
+    ctx.fillRect(PAD_L, barY, isHovered ? 4 : 3, barH)
+
+    // Valor ERA
+    ctx.fillStyle    = color
+    ctx.font         = isHovered ? 'bold 11px sans-serif' : 'bold 10px sans-serif'
+    ctx.textAlign    = 'left'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(era.toFixed(2), PAD_L + barW + 6, rowY + ROW_H / 2)
+
+    // Ponches (K)
+    ctx.fillStyle    = isHovered ? '#475569' : '#94a3b8'
+    ctx.font         = isHovered ? 'bold 10px sans-serif' : '10px sans-serif'
+    ctx.textAlign    = 'right'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(Number(p.K) + 'K', W - 4, rowY + ROW_H / 2)
+  })
+
+  return top   // para que onBarMouseMove pueda usarlo
 }
 
 function dibujarBarras() {
   if (!canvasBar.value) return
+  const W = canvasBar.value.offsetWidth || 400
+  _dibujarBarrasEnCanvas(canvasBar.value, W, pitchersFiltrados.value, hoveredBar.value)
+  canvasBar.value.style.width  = W + 'px'
+  canvasBar.value.style.height = canvasBar.value.height + 'px'
+}
 
-  // Top 10 con más innings lanzados
-  const top = [...pitchers.value]
-    .filter(p => p.IP > 0)
-    .sort((a, b) => (b.IP || 0) - (a.IP || 0))
-    .slice(0, 10)
-    .sort((a, b) => (a.ERA ?? 99) - (b.ERA ?? 99))
-
-  if (!top.length) return
-
+function onBarMouseMove(e) {
   const canvas = canvasBar.value
-  const dpr    = window.devicePixelRatio || 1
-  const W      = canvas.offsetWidth || 360
-  const H      = 320
+  if (!canvas) return
 
-  canvas.width  = W * dpr
-  canvas.height = H * dpr
+  const rect = canvas.getBoundingClientRect()
+  const my   = (e.clientY - rect.top) * (canvas.height / rect.height)
 
-  const ctx = canvas.getContext('2d')
-  ctx.scale(dpr, dpr)
-  ctx.clearRect(0, 0, W, H)
+  const ROW_H  = 36
+  const PAD_T  = 4
+  const top    = [...pitchersFiltrados.value]
+    .filter(p => p.IP > 0 && p.ERA !== null && p.ERA !== undefined)
+    .sort((a, b) => (a.ERA ?? 99) - (b.ERA ?? 99))
+    .slice(0, 12)
 
-  const padL = 40
-  const padR = 12
-  const padT = 16
-  const padB = 64
-  const chartW = W - padL - padR
-  const chartH = H - padT - padB
+  const idx = Math.floor((my - PAD_T) / ROW_H)
+  const newHovered = idx >= 0 && idx < top.length ? idx : -1
 
-  const maxERA = Math.max(...top.map(p => p.ERA ?? 0), 6) * 1.1
-  const barW   = chartW / top.length
-  const gap    = barW * 0.25
-
-  // Cuadrícula
-  ctx.strokeStyle = '#e2e8f0'
-  ctx.lineWidth   = 0.8
-  for (let i = 0; i <= 5; i++) {
-    const y = padT + chartH - (i / 5) * chartH
-    ctx.beginPath()
-    ctx.moveTo(padL, y)
-    ctx.lineTo(padL + chartW, y)
-    ctx.stroke()
-    ctx.fillStyle    = '#94a3b8'
-    ctx.font         = '9px sans-serif'
-    ctx.textAlign    = 'right'
-    ctx.textBaseline = 'middle'
-    ctx.fillText(((maxERA * i) / 5).toFixed(1), padL - 4, y)
+  if (newHovered !== hoveredBar.value) {
+    hoveredBar.value = newHovered
+    dibujarBarras()
   }
 
-  // Barras
-  top.forEach((p, i) => {
-    const era  = p.ERA ?? 0
-    const h    = (era / maxERA) * chartH
-    const x    = padL + i * barW + gap / 2
-    const w    = barW - gap
-    const y    = padT + chartH - h
+  if (newHovered >= 0 && barContainer.value) {
+    const containerRect = barContainer.value.getBoundingClientRect()
+    barTooltip.value = {
+      visible:  true,
+      x:        e.clientX - containerRect.left,
+      y:        e.clientY - containerRect.top - 8,
+      pitcher:  top[newHovered],
+    }
+  } else {
+    barTooltip.value = { ...barTooltip.value, visible: false }
+  }
+}
 
-    // Color según ERA
-    let color
-    if (era < 2.0)       color = '#10b981'
-    else if (era < 4.0)  color = '#3b82f6'
-    else if (era < 6.0)  color = '#f59e0b'
-    else                 color = '#ef4444'
-
-    ctx.fillStyle = color + '33'
-    ctx.fillRect(x, y, w, h)
-    ctx.fillStyle = color
-    ctx.fillRect(x, y, w, 3)
-
-    // Valor ERA encima
-    ctx.fillStyle    = '#1e293b'
-    ctx.font         = 'bold 9px sans-serif'
-    ctx.textAlign    = 'center'
-    ctx.textBaseline = 'bottom'
-    ctx.fillText(era.toFixed(2), x + w / 2, y - 2)
-
-    // Nombre del pitcher (rotado)
-    ctx.save()
-    ctx.translate(x + w / 2, padT + chartH + 6)
-    ctx.rotate(-Math.PI / 4)
-    ctx.fillStyle    = '#475569'
-    ctx.font         = '9px sans-serif'
-    ctx.textAlign    = 'right'
-    ctx.textBaseline = 'middle'
-    const nombre = p.jugador?.split(' ').slice(-1)[0] || p.jugador
-    ctx.fillText(nombre, 0, 0)
-    ctx.restore()
-  })
-
-  // Eje X
-  ctx.strokeStyle = '#cbd5e1'
-  ctx.lineWidth   = 1
-  ctx.beginPath()
-  ctx.moveTo(padL, padT + chartH)
-  ctx.lineTo(padL + chartW, padT + chartH)
-  ctx.stroke()
+function onBarMouseLeave() {
+  hoveredBar.value = -1
+  barTooltip.value = { ...barTooltip.value, visible: false }
+  dibujarBarras()
 }
 
 watch(mostrarGrafico, async (val) => {
-  if (val && pitchers.value.length) {
+  if (val && pitchersFiltrados.value.length) {
+    await nextTick()
+    requestAnimationFrame(() => dibujarBarras())
+  }
+})
+
+watch([equiposSeleccionados, lanzadoresSeleccionados], async () => {
+  if (mostrarGrafico.value && pitchersFiltrados.value.length) {
     await nextTick()
     requestAnimationFrame(() => dibujarBarras())
   }
@@ -399,6 +519,7 @@ async function cargarLogoBase64(url) {
 }
 
 async function exportPDF() {
+  try {
   const doc   = new jsPDF({ orientation: 'landscape' })
   const pageW = doc.internal.pageSize.getWidth()
   const pageH = doc.internal.pageSize.getHeight()
@@ -424,27 +545,27 @@ async function exportPDF() {
 
   // Logo
   if (logoBase64) {
-    doc.addImage(logoBase64, 'PNG', 8, 6, 26, 26)
+    doc.addImage(logoBase64, 'PNG', 8, 6, 32, 28)
   } else {
     doc.setDrawColor(255, 255, 255)
     doc.setLineWidth(0.5)
-    doc.roundedRect(8, 6, 26, 26, 3, 3, 'S')
+    doc.roundedRect(8, 6, 32, 28, 3, 3, 'S')
     doc.setTextColor(255, 255, 255)
     doc.setFontSize(6.5)
     doc.setFont('helvetica', 'normal')
-    doc.text('LIGA', 21, 21, { align: 'center' })
+    doc.text('LIGA', 24, 21, { align: 'center' })
   }
 
   // Títulos
   doc.setTextColor(255, 255, 255)
   doc.setFontSize(17)
   doc.setFont('helvetica', 'bold')
-  doc.text('Liga Diamante', 40, 16)
+  doc.text('Liga Diamante', 46, 16)
 
   doc.setFontSize(9.5)
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(148, 163, 184)
-  doc.text('Reporte de Efectividad de Pitcheo — Lanzadores', 40, 24)
+  doc.text('Reporte de Efectividad de Pitcheo — Lanzadores', 46, 24)
 
   doc.setFontSize(9)
   doc.setFont('helvetica', 'bold')
@@ -466,23 +587,27 @@ async function exportPDF() {
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(71, 85, 105)
   doc.text(
-    `Lanzadores: ${pitchers.value.length}   |   Mejor ERA: ${mejorERA.value !== null ? mejorERA.value.toFixed(2) : '—'}   |   Total K: ${totalK.value}   |   Total IP: ${totalIP.value}`,
+    `Lanzadores: ${pitchersFiltrados.value.length}   |   Mejor ERA: ${mejorERA.value !== null ? mejorERA.value.toFixed(2) : '—'}   |   Total K: ${totalK.value}   |   Total IP: ${totalIP.value}`,
     pageW / 2, cursorY + 3, { align: 'center' }
   )
   cursorY += 18
 
-  // Gráfico (si está visible)
-  if (mostrarGrafico.value && canvasBar.value) {
-    const imgData = canvasBar.value.toDataURL('image/png')
-    const imgH    = 52
-    const imgW    = imgH * (canvasBar.value.width / canvasBar.value.height)
-    doc.setFontSize(9)
-    doc.setFont('helvetica', 'bold')
-    doc.setTextColor(30, 41, 59)
-    doc.text('Ranking de Efectividad (ERA)', pageW / 2, cursorY, { align: 'center' })
-    cursorY += 4
-    doc.addImage(imgData, 'PNG', (pageW - imgW) / 2, cursorY, imgW, imgH)
-    cursorY += imgH + 8
+  // Gráfico (si está visible) — ancho completo de página
+  if (mostrarGrafico.value && pitchersFiltrados.value.some(p => p.IP > 0 && p.ERA !== null)) {
+    const oc = document.createElement('canvas')
+    _dibujarBarrasEnCanvas(oc, 1400, pitchersFiltrados.value)
+    if (oc.width > 0 && oc.height > 0) {
+      const imgData   = oc.toDataURL('image/png')
+      const imgW      = pageW - 28
+      const imgH      = imgW * (oc.height / oc.width)
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(30, 41, 59)
+      doc.text('Ranking de Efectividad (ERA)', pageW / 2, cursorY, { align: 'center' })
+      cursorY += 4
+      doc.addImage(imgData, 'PNG', 14, cursorY, imgW, imgH)
+      cursorY += imgH + 8
+    }
   }
 
   // Tabla por equipo
@@ -498,7 +623,7 @@ async function exportPDF() {
       head: [['Lanzador', 'JJ', 'IP', 'ER', 'K', 'W', 'L', 'ERA']],
       body: grupo.jugadores.map(p => [
         p.jugador, p.JJ, p.IP, p.ER, p.K, p.W, p.L,
-        p.ERA !== null && p.ERA !== undefined ? p.ERA.toFixed(2) : '—',
+        p.ERA !== null && p.ERA !== undefined ? Number(p.ERA).toFixed(2) : '—',
       ]),
       theme: 'grid',
       headStyles: { fillColor: [30, 41, 59], textColor: 255, fontStyle: 'bold', halign: 'center', fontSize: 8 },
@@ -535,6 +660,10 @@ async function exportPDF() {
   }
 
   doc.save(`reporte-pitcheo-${temporadaNombre.value.replace(/\s+/g, '_')}.pdf`)
+  } catch (err) {
+    console.error('Error al exportar PDF de pitcheo:', err)
+    alert('No se pudo generar el PDF. Asegúrate de que los datos estén cargados.')
+  }
 }
 
 function exportExcel() {

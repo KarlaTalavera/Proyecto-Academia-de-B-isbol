@@ -100,9 +100,7 @@
               <span class="ig-team__name">{{ team.name }}</span>
               <span class="ig-team__coach">DT: {{ team.coach }}</span>
             </div>
-            <span :class="['ig-team__badge', team.paid ? 'ig-team__badge--paid' : 'ig-team__badge--pending']">
-              {{ team.paid ? 'INSCRITO' : 'PENDIENTE' }}
-            </span>
+            <span class="ig-team__badge ig-team__badge--paid">PARTICIPANTE</span>
           </div>
         </div>
       </div>
@@ -176,14 +174,14 @@ import LandingHeader from '@/components/landing/LandingHeader.vue'
 
 // Datos reales del test-data.sql
 const teams = [
-  { name: 'Leones de Caracas',         coach: 'Carlos Mendoza',   paid: true  },
-  { name: 'Tigres de Aragua',           coach: 'José Rodríguez',   paid: true  },
-  { name: 'Águilas del Zulia',          coach: 'Miguel Hernández', paid: true  },
-  { name: 'Navegantes del Magallanes',  coach: 'Roberto Silva',    paid: true  },
-  { name: 'Caribes de Anzoátegui',      coach: 'Fernando Torres',  paid: true  },
-  { name: 'Bravos de Margarita',        coach: 'Andrés Morales',   paid: true  },
-  { name: 'Cardenales de Lara',         coach: 'Ricardo Vargas',   paid: false },
-  { name: 'Tiburones de La Guaira',     coach: 'Daniel Castillo',  paid: false },
+  { name: 'Leones de Caracas',         coach: 'Carlos Mendoza'   },
+  { name: 'Tigres de Aragua',           coach: 'José Rodríguez'   },
+  { name: 'Águilas del Zulia',          coach: 'Miguel Hernández' },
+  { name: 'Navegantes del Magallanes',  coach: 'Roberto Silva'    },
+  { name: 'Caribes de Anzoátegui',      coach: 'Fernando Torres'  },
+  { name: 'Bravos de Margarita',        coach: 'Andrés Morales'   },
+  { name: 'Cardenales de Lara',         coach: 'Ricardo Vargas'   },
+  { name: 'Tiburones de La Guaira',     coach: 'Daniel Castillo'  },
 ]
 
 // Posiciones del ENUM en la BD

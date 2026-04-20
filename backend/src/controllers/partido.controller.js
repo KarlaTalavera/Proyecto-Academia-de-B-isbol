@@ -4,6 +4,7 @@ const db             = require('../config/database')
 
 const PartidoController = {
   async listar(req, res) {
+    await PartidoModel.autoFinalizarVencidos()
     const { temporada } = req.query
     const data = await PartidoModel.findAll(temporada || null)
     res.json(data)
@@ -20,8 +21,24 @@ const PartidoController = {
     if (!id_temporada || !id_equipo_casa || !id_equipo_visitante || !fecha_juego || !hora_juego) {
       return res.status(400).json({ error: 'id_temporada, equipos, fecha_juego y hora_juego son requeridos' })
     }
+    if (new Date(`${fecha_juego}T${hora_juego}`) <= new Date()) {
+      return res.status(400).json({ error: 'Solo se pueden programar partidos en fechas futuras' })
+    }
     const id = await PartidoModel.create(req.body)
     res.status(201).json({ id_partido: id })
+  },
+
+  async reprogramar(req, res) {
+    const { fecha_juego, hora_juego } = req.body
+    if (!fecha_juego || !hora_juego) {
+      return res.status(400).json({ error: 'fecha_juego y hora_juego son requeridos' })
+    }
+    if (new Date(`${fecha_juego}T${hora_juego}`) <= new Date()) {
+      return res.status(400).json({ error: 'Solo se puede reprogramar a una fecha y hora futuras' })
+    }
+    const affected = await PartidoModel.updateFechaHora(req.params.id, fecha_juego, hora_juego)
+    if (!affected) return res.status(404).json({ error: 'Partido no encontrado' })
+    res.json({ ok: true })
   },
 
   async actualizarEstado(req, res) {

@@ -50,6 +50,22 @@ const PartidoModel = {
     return result.affectedRows
   },
 
+  async updateFechaHora(id, fecha_juego, hora_juego) {
+    const [result] = await db.query(
+      'UPDATE partido SET fecha_juego=?, hora_juego=?, estado=? WHERE id_partido=?',
+      [fecha_juego, hora_juego, 'programado', id]
+    )
+    return result.affectedRows
+  },
+
+  async autoFinalizarVencidos() {
+    await db.query(
+      `UPDATE partido SET estado='finalizado'
+       WHERE estado='programado'
+       AND TIMESTAMP(fecha_juego, hora_juego) < NOW()`
+    )
+  },
+
   async delete(id) {
     const [result] = await db.query('DELETE FROM partido WHERE id_partido = ?', [id])
     return result.affectedRows

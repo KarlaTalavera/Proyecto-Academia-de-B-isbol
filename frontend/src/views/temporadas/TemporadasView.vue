@@ -92,7 +92,6 @@
                     <option>Aficionado</option>
                     <option>Semi-profesional</option>
                     <option>Profesional</option>
-                    <option>Femenino</option>
                     <option>Máster</option>
                   </select>
                 </div>

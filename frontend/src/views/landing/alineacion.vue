@@ -29,7 +29,8 @@
         </div>
 
         <div v-else-if="!partidos.length" class="al-empty">
-          <p>No hay partidos en la temporada activa.</p>
+          <p>Aún no hay alineaciones publicadas.</p>
+          <span class="al-empty__sub">El anotador las cargará antes del inicio de cada juego.</span>
         </div>
 
         <div v-else class="al-partidos-grid">
@@ -52,30 +53,14 @@
       </div>
     </section>
 
-    <!-- ── PIZARRÓN ── -->
+    <!-- ── LINEUP ── -->
     <section v-if="partidoActivo" class="al-section">
       <div class="al-container">
-        <span class="al-eyebrow al-eyebrow--center">PASO 2 — MUEVE LOS JUGADORES</span>
         <h2 class="al-title al-title--center">
-          <em>{{ partidoActivo.equipo_casa }}</em> vs {{ partidoActivo.equipo_visitante }}
+          <em>{{ partidoActivo.equipo_casa }}</em>
+          <span style="color:var(--red);font-size:0.6em;padding:0 0.3em">VS</span>
+          {{ partidoActivo.equipo_visitante }}
         </h2>
-
-        <!-- Tabs equipo -->
-        <div class="al-tabs">
-          <button
-            :class="['al-tab', { 'al-tab--active': equipoActivo === 'casa' }]"
-            @click="cambiarEquipo('casa')"
-          >
-            {{ partidoActivo.equipo_casa }}
-          </button>
-          <button
-            :class="['al-tab', { 'al-tab--active': equipoActivo === 'visitante' }]"
-            @click="cambiarEquipo('visitante')"
-          >
-            {{ partidoActivo.equipo_visitante }}
-          </button>
-          <button class="al-tab al-tab--reset" @click="resetear">Reiniciar</button>
-        </div>
 
         <!-- Cargando -->
         <div v-if="cargandoLineup" class="al-loading">
@@ -83,113 +68,53 @@
           <span>Cargando alineación...</span>
         </div>
 
-        <!-- Sin lineup -->
-        <div v-else-if="jugadoresActivos.length === 0" class="al-empty al-empty--big">
+        <!-- Sin titulares -->
+        <div v-else-if="!lineupData.length" class="al-empty al-empty--big">
           <p>El anotador aún no cargó la alineación para este partido.</p>
           <span class="al-empty__sub">Se publica antes del inicio del juego.</span>
         </div>
 
-        <!-- PIZARRÓN INTERACTIVO -->
-        <div v-else class="al-pizarron-wrap">
+        <!-- Dos columnas: equipo casa | equipo visitante -->
+        <div v-else class="al-lineup-cols">
 
-          <!-- Campo de béisbol -->
-          <div
-            class="al-campo"
-            ref="campoRef"
-            @mousemove="onMouseMove"
-            @mouseup="onMouseUp"
-            @touchmove.prevent="onTouchMove"
-            @touchend="onTouchEnd"
-          >
-            <!-- SVG del campo -->
-            <svg class="al-campo__svg" viewBox="0 0 600 560" xmlns="http://www.w3.org/2000/svg">
-              <!-- Fondo pasto -->
-              <rect width="600" height="560" fill="#1a3d1a" />
-              <!-- Pasto jardines -->
-              <path d="M300 460 L60 160 A280 280 0 0 1 540 160 Z" fill="#1f4d1f" />
-              <!-- Pasto infield -->
-              <polygon points="300,460 420,340 300,220 180,340" fill="#2d5a1b" />
-              <!-- Diamante tierra -->
-              <polygon points="300,460 420,340 300,220 180,340" fill="#8B6914" opacity="0.3"/>
-              <!-- Líneas de foul -->
-              <line x1="300" y1="460" x2="60" y2="160" stroke="white" stroke-width="1.5" opacity="0.6"/>
-              <line x1="300" y1="460" x2="540" y2="160" stroke="white" stroke-width="1.5" opacity="0.6"/>
-              <!-- Línea base paths -->
-              <polygon points="300,460 420,340 300,220 180,340"
-                fill="none" stroke="white" stroke-width="1.5" opacity="0.5"/>
-              <!-- Montículo -->
-              <circle cx="300" cy="340" r="18" fill="#8B6914" opacity="0.6"/>
-              <circle cx="300" cy="340" r="4" fill="white" opacity="0.8"/>
-              <!-- Home plate -->
-              <polygon points="300,466 292,474 292,482 308,482 308,474"
-                fill="white" opacity="0.9"/>
-              <!-- Bases -->
-              <rect x="290" y="212" width="20" height="16" rx="2" fill="white" opacity="0.9"/> <!-- 2B -->
-              <rect x="412" y="332" width="20" height="16" rx="2" fill="white" opacity="0.9"/> <!-- 1B -->
-              <rect x="168" y="332" width="20" height="16" rx="2" fill="white" opacity="0.9"/> <!-- 3B -->
-              <!-- Etiquetas bases -->
-              <text x="300" y="204" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="11" font-family="sans-serif" font-weight="bold">2B</text>
-              <text x="444" y="344" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="11" font-family="sans-serif" font-weight="bold">1B</text>
-              <text x="156" y="344" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="11" font-family="sans-serif" font-weight="bold">3B</text>
-              <text x="300" y="498" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="11" font-family="sans-serif" font-weight="bold">HOME</text>
-              <text x="300" y="336" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="10" font-family="sans-serif" font-weight="bold">P</text>
-              <!-- Jardines labels -->
-              <text x="300" y="110" text-anchor="middle" fill="rgba(255,255,255,0.4)" font-size="11" font-family="sans-serif">CF</text>
-              <text x="130" y="190" text-anchor="middle" fill="rgba(255,255,255,0.4)" font-size="11" font-family="sans-serif">LF</text>
-              <text x="470" y="190" text-anchor="middle" fill="rgba(255,255,255,0.4)" font-size="11" font-family="sans-serif">RF</text>
-              <text x="370" y="274" text-anchor="middle" fill="rgba(255,255,255,0.3)" font-size="10" font-family="sans-serif">SS</text>
-              <text x="230" y="274" text-anchor="middle" fill="rgba(255,255,255,0.3)" font-size="10" font-family="sans-serif">2B</text>
-              <!-- Instrucción -->
-              <text x="300" y="540" text-anchor="middle" fill="rgba(255,255,255,0.25)" font-size="10" font-family="sans-serif">Arrastra los jugadores</text>
-            </svg>
-
-            <!-- Jugadores arrastrables -->
-            <div
-              v-for="jugador in jugadoresActivos"
-              :key="jugador.id_jugador || jugador.nombre"
-              class="al-jugador-token"
-              :class="{ 'al-jugador-token--dragging': dragging?.key === jugadorKey(jugador) }"
-              :style="tokenStyle(jugador)"
-              @mousedown.prevent="startDrag($event, jugador)"
-              @touchstart.prevent="startDragTouch($event, jugador)"
-            >
-              <div class="al-jugador-token__pos">{{ jugador.posicion_juego || jugador.posicion }}</div>
-              <div class="al-jugador-token__nombre">{{ jugador.nombre?.charAt(0) }}. {{ jugador.apellido }}</div>
-              <div v-if="jugador.orden_bateo" class="al-jugador-token__num">{{ jugador.orden_bateo }}</div>
+          <div v-for="lado in ['casa', 'visitante']" :key="lado" class="al-lineup-equipo">
+            <div class="al-lineup-equipo__header">
+              <span class="al-lineup-equipo__badge">{{ lado === 'casa' ? 'LOCAL' : 'VISITANTE' }}</span>
+              <h3 class="al-lineup-equipo__nombre">
+                {{ lado === 'casa' ? partidoActivo.equipo_casa : partidoActivo.equipo_visitante }}
+              </h3>
             </div>
-          </div>
 
-          <!-- Lista lateral -->
-          <div class="al-sidebar">
-            <div class="al-sidebar__title">ORDEN AL BATE</div>
-            <div class="al-sidebar__list">
+            <div class="al-player-grid">
               <div
-                v-for="j in jugadoresActivos.filter(x => x.orden_bateo).sort((a,b) => a.orden_bateo - b.orden_bateo)"
+                v-for="j in jugadoresPorLado(lado)"
                 :key="jugadorKey(j)"
-                class="al-sidebar__item"
+                class="al-player-card"
               >
-                <span class="al-sidebar__num">{{ j.orden_bateo }}</span>
-                <div class="al-sidebar__info">
-                  <span class="al-sidebar__nombre">{{ j.nombre }} {{ j.apellido }}</span>
-                  <span class="al-sidebar__pos">{{ j.posicion_juego || j.posicion }}</span>
+                <!-- Foto o avatar -->
+                <div class="al-player-card__foto-wrap">
+                  <img
+                    v-if="j.foto_url"
+                    :src="apiBase + j.foto_url"
+                    :alt="j.nombre"
+                    class="al-player-card__foto"
+                  />
+                  <div v-else class="al-player-card__avatar">
+                    {{ j.nombre?.charAt(0) }}{{ j.apellido?.charAt(0) }}
+                  </div>
+                  <!-- Badge de posición -->
+                  <span class="al-player-card__pos-badge">{{ j.posicion_juego || j.posicion }}</span>
+                  <!-- Número de orden al bate -->
+                  <span v-if="j.orden_bateo" class="al-player-card__orden">#{{ j.orden_bateo }}</span>
+                </div>
+                <div class="al-player-card__info">
+                  <span class="al-player-card__nombre">{{ j.nombre }} {{ j.apellido }}</span>
+                  <span class="al-player-card__pos-txt">{{ posicionCompleta(j.posicion_juego || j.posicion) }}</span>
                 </div>
               </div>
             </div>
-
-            <!-- Pitcher -->
-            <div v-if="pitcher" class="al-sidebar__pitcher">
-              <div class="al-sidebar__title" style="margin-top:16px">PITCHER</div>
-              <div class="al-sidebar__item al-sidebar__item--pitcher">
-                <span class="al-sidebar__num" style="color:#ff6b6b">P</span>
-                <div class="al-sidebar__info">
-                  <span class="al-sidebar__nombre">{{ pitcher.nombre }} {{ pitcher.apellido }}</span>
-                  <span class="al-sidebar__pos">Lanzador</span>
-                </div>
-              </div>
-            </div>
-
-            <button class="al-sidebar__reset" @click="resetear">Reiniciar posiciones</button>
           </div>
+
         </div>
       </div>
     </section>
@@ -249,8 +174,8 @@
           </div>
           <div class="al-modal__footer">
             <button class="al-modal__btn al-modal__btn--outline" @click="cerrarModal">Cerrar</button>
-            <button class="al-modal__btn al-modal__btn--gold" @click="cargarPizarron">
-              Ver en el Diamante
+            <button class="al-modal__btn al-modal__btn--gold" @click="cargarLineup">
+              Ver Alineación
             </button>
           </div>
         </div>
@@ -261,139 +186,43 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import api from '@/services/api'
 import LandingHeader from '@/components/landing/LandingHeader.vue'
 
+const apiBase = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3000'
+
 // ── Estado principal ──
-const partidos          = ref([])
-const cargandoPartidos  = ref(true)
-const partidoActivo     = ref(null)
-const lineupData        = ref([])
-const cargandoLineup    = ref(false)
-const equipoActivo      = ref('casa')
-const modalPartido      = ref(null)
-const campoRef          = ref(null)
+const partidos         = ref([])
+const cargandoPartidos = ref(true)
+const partidoActivo    = ref(null)
+const lineupData       = ref([])
+const cargandoLineup   = ref(false)
+const modalPartido     = ref(null)
 
-// ── Posiciones de los tokens en el campo ──
-// { key: { x: %, y: % } }
-const posiciones = ref({})
-
-// ── Drag state ──
-const dragging = ref(null) // { key, offsetX, offsetY }
-
-// ── Posiciones por defecto según posicion del jugador ──
-const defaultPos = {
-  'P':  { x: 50, y: 62 },
-  'C':  { x: 50, y: 84 },
-  '1B': { x: 71, y: 62 },
-  '2B': { x: 61, y: 47 },
-  '3B': { x: 29, y: 62 },
-  'SS': { x: 39, y: 47 },
-  'LF': { x: 20, y: 32 },
-  'CF': { x: 50, y: 18 },
-  'RF': { x: 80, y: 32 },
-  'DH': { x: 50, y: 92 },
-  'UT': { x: 15, y: 75 },
-}
-
-// ── Jugadores del equipo activo ──
-const jugadoresActivos = computed(() => {
+// ── Jugadores por lado ──
+function jugadoresPorLado(lado) {
   if (!lineupData.value.length || !partidoActivo.value) return []
-  const idEquipo = equipoActivo.value === 'casa'
+  const idEquipo = lado === 'casa'
     ? partidoActivo.value.id_equipo_casa
     : partidoActivo.value.id_equipo_visitante
-  return lineupData.value.filter(j => j.id_equipo === idEquipo && j.es_titular)
-})
+  return lineupData.value
+    .filter(j => j.id_equipo === idEquipo && j.es_titular)
+    .sort((a, b) => (a.orden_bateo || 99) - (b.orden_bateo || 99))
+}
 
-const pitcher = computed(() =>
-  jugadoresActivos.value.find(j => j.rol === 'pitcher' || (j.posicion_juego || j.posicion) === 'P')
-)
-
-// ── Key única por jugador ──
 function jugadorKey(j) {
   return `${j.id_equipo}-${j.nombre}-${j.apellido}`
 }
 
-// ── Posición del token ──
-function tokenStyle(jugador) {
-  const key = jugadorKey(jugador)
-  const pos = posiciones.value[key] || defaultPos[jugador.posicion_juego || jugador.posicion] || { x: 50, y: 50 }
-  return {
-    left: pos.x + '%',
-    top:  pos.y + '%',
-    transform: 'translate(-50%, -50%)',
-    cursor: dragging.value?.key === key ? 'grabbing' : 'grab',
-    zIndex: dragging.value?.key === key ? 100 : 10,
-  }
+const POSICIONES = {
+  'P':  'Pitcher',    'C':  'Catcher',   '1B': 'Primera Base',
+  '2B': 'Segunda Base','3B': 'Tercera Base','SS': 'Shortstop',
+  'LF': 'Left Field', 'CF': 'Center Field','RF': 'Right Field',
+  'DH': 'Bateador Designado','UT': 'Utility',
 }
-
-// ── Inicializar posiciones ──
-function inicializarPosiciones() {
-  const nuevas = {}
-  jugadoresActivos.value.forEach(j => {
-    const key = jugadorKey(j)
-    const pos = j.posicion_juego || j.posicion
-    nuevas[key] = defaultPos[pos] || { x: 50, y: 50 }
-  })
-  posiciones.value = nuevas
-}
-
-function resetear() {
-  inicializarPosiciones()
-}
-
-// ── Drag mouse ──
-function startDrag(e, jugador) {
-  dragging.value = { key: jugadorKey(jugador) }
-}
-
-function onMouseMove(e) {
-  if (!dragging.value || !campoRef.value) return
-  const rect = campoRef.value.getBoundingClientRect()
-  const x = ((e.clientX - rect.left) / rect.width) * 100
-  const y = ((e.clientY - rect.top)  / rect.height) * 100
-  posiciones.value = {
-    ...posiciones.value,
-    [dragging.value.key]: {
-      x: Math.max(5, Math.min(95, x)),
-      y: Math.max(5, Math.min(97, y)),
-    }
-  }
-}
-
-function onMouseUp() {
-  dragging.value = null
-}
-
-// ── Drag touch ──
-function startDragTouch(e, jugador) {
-  dragging.value = { key: jugadorKey(jugador) }
-}
-
-function onTouchMove(e) {
-  if (!dragging.value || !campoRef.value) return
-  const touch = e.touches[0]
-  const rect = campoRef.value.getBoundingClientRect()
-  const x = ((touch.clientX - rect.left) / rect.width) * 100
-  const y = ((touch.clientY - rect.top)  / rect.height) * 100
-  posiciones.value = {
-    ...posiciones.value,
-    [dragging.value.key]: {
-      x: Math.max(5, Math.min(95, x)),
-      y: Math.max(5, Math.min(97, y)),
-    }
-  }
-}
-
-function onTouchEnd() {
-  dragging.value = null
-}
-
-// ── Cambiar equipo ──
-function cambiarEquipo(equipo) {
-  equipoActivo.value = equipo
-  setTimeout(inicializarPosiciones, 50)
+function posicionCompleta(pos) {
+  return POSICIONES[pos] || pos || ''
 }
 
 // ── Modal ──
@@ -407,26 +236,23 @@ function cerrarModal() {
   document.body.style.overflow = ''
 }
 
-async function cargarPizarron() {
+async function cargarLineup() {
   const partido = modalPartido.value
   cerrarModal()
   partidoActivo.value = partido
-  equipoActivo.value = 'casa'
   cargandoLineup.value = true
   lineupData.value = []
-  posiciones.value = {}
   try {
     const { data } = await api.get(`/pub/lineup/${partido.id_partido}`)
     lineupData.value = data
-    setTimeout(inicializarPosiciones, 100)
   } catch {
     lineupData.value = []
   } finally {
     cargandoLineup.value = false
   }
   setTimeout(() => {
-    document.querySelector('.al-tabs')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }, 300)
+    document.querySelector('.al-lineup-cols')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, 200)
 }
 
 // ── Helpers fecha ──
@@ -445,21 +271,16 @@ function formatHora(hora) {
   return hora.slice(0, 5)
 }
 
-// ── Limpiar drag si el mouse sale de la ventana ──
 onMounted(async () => {
-  window.addEventListener('mouseup', onMouseUp)
   try {
     const { data } = await api.get('/pub/partidos')
-    partidos.value = data
+    const campoDisponible = data.length > 0 && data[0].tiene_lineup !== undefined
+    partidos.value = campoDisponible ? data.filter(p => p.tiene_lineup == 1) : data
   } catch {
     partidos.value = []
   } finally {
     cargandoPartidos.value = false
   }
-})
-
-onUnmounted(() => {
-  window.removeEventListener('mouseup', onMouseUp)
 })
 </script>
 
@@ -591,109 +412,83 @@ onUnmounted(() => {
   font-size: 11px; color: var(--txt-dim);
 }
 
-/* ── Tabs ── */
-.al-tabs {
-  display: flex; gap: 8px; margin-bottom: 28px; flex-wrap: wrap;
+/* ── Lineup dos columnas ── */
+.al-lineup-cols {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 32px;
 }
-.al-tab {
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: 13px; font-weight: 700; letter-spacing: 1px;
-  text-transform: uppercase; padding: 10px 24px; border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.1); background: transparent;
-  color: var(--txt); cursor: pointer; transition: all 0.2s;
-}
-.al-tab:hover { border-color: var(--gold); color: var(--gold); }
-.al-tab--active { background: var(--gold); color: var(--bg); border-color: var(--gold); }
-.al-tab--reset {
-  margin-left: auto; border-color: rgba(255,255,255,0.06); color: var(--txt-dim);
-}
-.al-tab--reset:hover { border-color: white; color: white; }
+@media (max-width: 860px) { .al-lineup-cols { grid-template-columns: 1fr; } }
 
-/* ── Pizarrón layout ── */
-.al-pizarron-wrap {
-  display: grid; grid-template-columns: 1fr 260px; gap: 24px; align-items: start;
+.al-lineup-equipo__header {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 20px;
 }
-@media (max-width: 900px) { .al-pizarron-wrap { grid-template-columns: 1fr; } }
-
-/* ── Campo ── */
-.al-campo {
-  position: relative; width: 100%;
-  aspect-ratio: 600/560;
-  border-radius: 16px; overflow: hidden;
-  box-shadow: 0 8px 40px rgba(0,0,0,0.6);
-  user-select: none;
-}
-.al-campo__svg { width: 100%; height: 100%; display: block; }
-
-/* ── Token jugador ── */
-.al-jugador-token {
-  position: absolute;
-  display: flex; flex-direction: column; align-items: center; gap: 1px;
-  transition: transform 0.05s;
-}
-.al-jugador-token--dragging { transition: none; }
-
-.al-jugador-token__pos {
-  width: 32px; height: 32px; border-radius: 50%;
-  background: var(--gold); color: #1a0d0a;
-  font-family: 'Bebas Neue', sans-serif; font-size: 13px; letter-spacing: 1px;
-  display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
-  border: 2px solid rgba(255,255,255,0.3);
-}
-.al-jugador-token--dragging .al-jugador-token__pos {
-  background: white; transform: scale(1.15);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.7);
-}
-.al-jugador-token__nombre {
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: 9px; font-weight: 700; color: white;
-  text-transform: uppercase; white-space: nowrap;
-  background: rgba(0,0,0,0.6); padding: 1px 5px; border-radius: 4px;
-  letter-spacing: 0.3px;
-}
-.al-jugador-token__num {
-  font-family: 'Bebas Neue', sans-serif; font-size: 10px;
-  color: var(--gold); line-height: 1;
-}
-
-/* ── Sidebar ── */
-.al-sidebar {
-  background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: 16px; padding: 20px 18px; display: flex; flex-direction: column; gap: 0;
-}
-.al-sidebar__title {
+.al-lineup-equipo__badge {
   font-family: 'Barlow Condensed', sans-serif;
   font-size: 10px; font-weight: 700; letter-spacing: 3px;
-  color: var(--txt-dim); text-transform: uppercase; margin-bottom: 12px;
+  text-transform: uppercase; padding: 3px 10px; border-radius: 999px;
+  background: rgba(140,9,2,0.4); color: var(--gold); border: 1px solid rgba(212,175,55,0.2);
 }
-.al-sidebar__list { display: flex; flex-direction: column; gap: 2px; }
-.al-sidebar__item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 7px 8px; border-radius: 8px; transition: background 0.15s;
+.al-lineup-equipo__nombre {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px; color: white; margin: 0; letter-spacing: 1px;
 }
-.al-sidebar__item:hover { background: rgba(255,255,255,0.04); }
-.al-sidebar__item--pitcher { background: rgba(140,9,2,0.1); border: 1px solid rgba(140,9,2,0.2); }
-.al-sidebar__num {
-  font-family: 'Bebas Neue', sans-serif; font-size: 18px;
-  color: var(--gold); width: 20px; text-align: center; flex-shrink: 0;
-}
-.al-sidebar__info { display: flex; flex-direction: column; gap: 1px; }
-.al-sidebar__nombre {
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: 13px; font-weight: 700; color: white; text-transform: uppercase;
-}
-.al-sidebar__pos { font-size: 11px; color: var(--txt-dim); }
 
-.al-sidebar__pitcher { display: flex; flex-direction: column; }
-.al-sidebar__reset {
-  margin-top: 16px; background: transparent;
-  border: 1px solid rgba(255,255,255,0.08); color: var(--txt-dim);
-  font-family: 'Barlow Condensed', sans-serif; font-size: 12px; font-weight: 700;
-  letter-spacing: 1px; text-transform: uppercase; padding: 8px;
-  border-radius: 8px; cursor: pointer; transition: all 0.2s;
+/* ── Grid de cards ── */
+.al-player-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px;
 }
-.al-sidebar__reset:hover { border-color: var(--gold); color: var(--gold); }
+
+.al-player-card {
+  background: var(--bg-card);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px; overflow: hidden;
+  display: flex; flex-direction: column;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.al-player-card:hover {
+  border-color: rgba(212,175,55,0.35);
+  transform: translateY(-3px);
+}
+
+.al-player-card__foto-wrap {
+  position: relative; width: 100%; aspect-ratio: 1;
+  background: linear-gradient(135deg, #1c0f0c, #2a1510);
+  display: flex; align-items: center; justify-content: center;
+}
+.al-player-card__foto {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+}
+.al-player-card__avatar {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 36px; color: rgba(212,175,55,0.4); letter-spacing: 2px;
+}
+.al-player-card__pos-badge {
+  position: absolute; top: 7px; left: 7px;
+  background: rgba(0,0,0,0.75); color: var(--gold);
+  font-family: 'Bebas Neue', sans-serif; font-size: 13px;
+  padding: 2px 7px; border-radius: 6px; backdrop-filter: blur(4px);
+  border: 1px solid rgba(212,175,55,0.25);
+}
+.al-player-card__orden {
+  position: absolute; bottom: 7px; right: 7px;
+  background: rgba(140,9,2,0.85); color: white;
+  font-family: 'Bebas Neue', sans-serif; font-size: 12px;
+  padding: 1px 6px; border-radius: 6px;
+}
+
+.al-player-card__info {
+  padding: 10px 10px 12px;
+  display: flex; flex-direction: column; gap: 3px;
+}
+.al-player-card__nombre {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px; font-weight: 700; color: white;
+  text-transform: uppercase; letter-spacing: 0.5px;
+  line-height: 1.2;
+}
+.al-player-card__pos-txt {
+  font-size: 10px; color: var(--txt-dim);
+  font-family: 'Barlow Condensed', sans-serif; letter-spacing: 0.5px;
+}
 
 /* ── Loading ── */
 .al-loading {
