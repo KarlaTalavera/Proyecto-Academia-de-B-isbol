@@ -192,6 +192,61 @@ liga-de-beisbol/
 
 ---
 
+## Configuración de correos electrónicos (opcional)
+
+El sistema puede enviar correos automáticos en dos situaciones:
+
+| Cuándo | A quién | Qué dice |
+|---|---|---|
+| Partido finalizado sin estadísticas | Anotadores activos | Aviso para que ingresen las estadísticas pendientes |
+| Día anterior a un partido programado | Fanáticos que siguen a los equipos | Recordatorio del partido del día siguiente |
+
+Si no configuras el correo, el sistema funciona igual — simplemente no se envían esos avisos.
+
+### Cómo configurarlo
+
+El sistema usa **Gmail** con una contraseña de aplicación. Sigue estos pasos:
+
+**1. Activar verificación en dos pasos en tu cuenta Gmail**
+→ [myaccount.google.com/security](https://myaccount.google.com/security) → "Verificación en dos pasos" → Activar
+
+**2. Generar una contraseña de aplicación**
+→ En la misma página de seguridad, busca "Contraseñas de aplicaciones"
+→ Selecciona "Correo" y "Windows" (o el sistema que uses)
+→ Google genera una clave de 16 caracteres — **cópiala**
+
+> Nota: si no aparece "Contraseñas de aplicaciones", asegúrate de que la verificación en dos pasos esté activa.
+
+**3. Agregar las variables al `.env` del backend**
+
+```env
+EMAIL_USER=tucorreo@gmail.com
+EMAIL_PASS=abcd efgh ijkl mnop    # ← la clave de 16 caracteres que generaste (sin espacios)
+```
+
+Ejemplo completo del `.env` con correos:
+
+```env
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=
+DB_NAME=liga_diamante
+
+JWT_SECRET=tu_clave_secreta_larga
+JWT_EXPIRES_IN=8h
+
+PORT=3000
+FRONTEND_URL=http://localhost:5173
+
+EMAIL_USER=ligadiamante@gmail.com
+EMAIL_PASS=abcdefghijklmnop
+```
+
+Si `EMAIL_USER` o `EMAIL_PASS` están vacíos, el sistema muestra una advertencia en consola pero no falla — simplemente omite el envío.
+
+---
+
 ## Problemas comunes
 
 ### "Cannot connect to database" / "Access denied"
@@ -208,3 +263,9 @@ liga-de-beisbol/
 
 ### Las fotos subidas no aparecen
 → La carpeta `backend/uploads/` se crea automáticamente. Si no existe, créala manualmente.
+
+### Los correos automáticos no llegan
+→ Revisa que `EMAIL_USER` y `EMAIL_PASS` estén correctos en el `.env`.
+→ La contraseña debe ser la **contraseña de aplicación** de Google (16 caracteres), no la contraseña normal de Gmail.
+→ Si usas Gmail con dominio propio (Google Workspace), el proceso es el mismo.
+→ En consola verás `[Email] EMAIL_USER o EMAIL_PASS no configurados` si faltan las variables.
