@@ -5,38 +5,25 @@
         <h2 class="page-title">Partidos</h2>
         <p class="page-subtitle">Calendario y gestión de juegos</p>
       </div>
-      <button v-if="auth.esAdmin" class="btn btn-primary d-flex align-items-center gap-2" @click="abrirNuevoPartido">
+      <button v-if="esAdministrador" class="btn btn-primary d-flex align-items-center gap-2" @click="abrirNuevoPartido">
         <IconPlus :size="18" stroke-width="2" /> Programar Partido
       </button>
     </div>
 
-    <!-- Filtros de estado + buscador -->
     <div class="d-flex align-items-center justify-content-between gap-3 mb-3 flex-wrap">
       <div class="d-flex gap-2 flex-wrap">
-        <button
-          v-for="f in filtrosEstado" :key="f.valor"
-          class="btn btn-sm"
-          :class="filtroEstado === f.valor ? 'btn-primary' : 'btn-ghost-secondary'"
-          style="border-radius:20px; font-size:0.8rem;"
-          @click="filtroEstado = f.valor"
-        >
-          {{ f.label }}
-          <span class="ms-1 badge" style="background:rgba(255,255,255,0.25); font-size:0.65rem;">
-            {{ contarEstado(f.valor) }}
-          </span>
+        <button v-for="f in filtrosEstado" :key="f.valor"
+          class="btn btn-sm" :class="filtroEstado === f.valor ? 'btn-primary' : 'btn-ghost-secondary'"
+          style="border-radius:20px; font-size:0.8rem;" @click="filtroEstado = f.valor">
+          {{ f.label }} <span class="ms-1 badge" style="background:rgba(255,255,255,0.25); font-size:0.65rem;">{{ contarEstado(f.valor) }}</span>
         </button>
       </div>
       <div class="partido-search-wrapper">
         <IconSearch :size="15" class="partido-search-icon" />
-        <input
-          v-model="busqueda"
-          class="form-control form-control-sm partido-search"
-          placeholder="Buscar equipo, lugar..."
-        />
+        <input v-model="busqueda" class="form-control form-control-sm partido-search" placeholder="Buscar equipo, lugar..." />
       </div>
     </div>
 
-    <!-- Lista de partidos -->
     <div v-if="cargando" class="text-center py-5 text-muted">
       <span class="spinner-border text-primary me-2"></span> Cargando partidos...
     </div>
@@ -44,7 +31,7 @@
     <div v-else-if="!partidosFiltrados.length" class="card">
       <div class="card-body text-center py-5 text-muted">
         <IconCalendarEvent :size="40" stroke-width="1.2" class="mb-2" style="opacity:0.3;" />
-        <p class="mb-0">No se encontraron partidos{{ busqueda ? ' para "' + busqueda + '"' : (filtroEstado ? ' con estado "' + filtroEstado + '"' : '') }}</p>
+        <p class="mb-0">No se encontraron partidos</p>
       </div>
     </div>
 
@@ -53,23 +40,17 @@
         <div class="card" style="transition: transform 0.15s; cursor:default;">
           <div class="card-body py-3">
             <div class="d-flex align-items-center flex-wrap gap-3">
-
-              <!-- Fecha/Hora -->
               <div class="text-center" style="min-width:70px;">
-                <div class="fw-bold" style="font-size:1.3rem; color:#1e293b; line-height:1;">
-                  {{ formatDia(p.fecha_juego) }}
-                </div>
+                <div class="fw-bold" style="font-size:1.3rem; color:#1e293b; line-height:1;">{{ formatDia(p.fecha_juego) }}</div>
                 <div class="text-muted" style="font-size:0.72rem;">{{ formatMes(p.fecha_juego) }}</div>
                 <div class="text-muted" style="font-size:0.72rem;">{{ p.hora_juego?.substring(0,5) }}</div>
               </div>
 
-              <!-- Versus -->
               <div class="flex-grow-1">
                 <div class="d-flex align-items-center justify-content-center gap-3">
                   <div class="text-center">
                     <div class="team-avatar mx-auto mb-1">{{ p.equipo_casa?.charAt(0) }}</div>
-                    <div class="fw-semibold" style="font-size:0.82rem; color:#1e293b; max-width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ p.equipo_casa }}</div>
-                    <div class="text-muted" style="font-size:0.7rem;">Local</div>
+                    <div class="fw-semibold" style="font-size:0.82rem; color:#1e293b;">{{ p.equipo_casa }}</div>
                   </div>
                   <div class="px-2">
                     <span v-if="p.estado === 'finalizado' && p.resultado" class="fw-bold" style="font-size:1.4rem; color:#1e293b;">
@@ -79,35 +60,24 @@
                   </div>
                   <div class="text-center">
                     <div class="team-avatar mx-auto mb-1" style="background:linear-gradient(135deg,#f97316,#ef4444);">{{ p.equipo_visitante?.charAt(0) }}</div>
-                    <div class="fw-semibold" style="font-size:0.82rem; color:#1e293b; max-width:100px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ p.equipo_visitante }}</div>
-                    <div class="text-muted" style="font-size:0.7rem;">Visitante</div>
+                    <div class="fw-semibold" style="font-size:0.82rem; color:#1e293b;">{{ p.equipo_visitante }}</div>
                   </div>
                 </div>
               </div>
 
-              <!-- Info + acciones -->
               <div class="d-flex flex-column align-items-end gap-2" style="min-width:160px;">
                 <span class="badge" :class="badgeEstado(p.estado)">{{ etiquetaEstado(p.estado) }}</span>
-                <div v-if="p.lugar" class="text-muted d-flex align-items-center gap-1" style="font-size:0.75rem;">
-                  <IconMapPin :size="12" /> {{ p.lugar }}
-                </div>
                 <div class="d-flex gap-1 mt-1">
-                  <button class="btn btn-sm btn-ghost-primary" @click="verDetalle(p)">
-                    <IconEye :size="15" /> Detalle
-                  </button>
-                  <button v-if="auth.esAdmin" class="btn btn-sm btn-ghost-danger" @click="confirmarEliminar(p)">
-                    <IconTrash :size="15" />
-                  </button>
+                  <button class="btn btn-sm btn-ghost-primary" @click="verDetalle(p)"><IconEye :size="15" /> Detalle</button>
+                  <button v-if="esAdministrador" class="btn btn-sm btn-ghost-danger" @click="confirmarEliminar(p)"><IconTrash :size="15" /></button>
                 </div>
               </div>
-
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Paginación -->
     <div v-if="totalPaginas > 1" class="d-flex align-items-center justify-content-between mt-3">
       <span class="text-muted" style="font-size:0.8rem;">
         Mostrando {{ (paginaActual - 1) * porPagina + 1 }}–{{ Math.min(paginaActual * porPagina, partidosFiltrados.length) }}
@@ -117,16 +87,13 @@
         <button class="btn btn-sm btn-ghost-secondary" :disabled="paginaActual === 1" @click="paginaActual--">‹ Anterior</button>
         <button
           v-for="n in totalPaginas" :key="n"
-          class="btn btn-sm"
-          :class="n === paginaActual ? 'btn-primary' : 'btn-ghost-secondary'"
-          style="min-width:34px;"
-          @click="paginaActual = n"
+          class="btn btn-sm" :class="n === paginaActual ? 'btn-primary' : 'btn-ghost-secondary'"
+          style="min-width:34px;" @click="paginaActual = n"
         >{{ n }}</button>
         <button class="btn btn-sm btn-ghost-secondary" :disabled="paginaActual === totalPaginas" @click="paginaActual++">Siguiente ›</button>
       </div>
     </div>
 
-    <!-- ===================== MODAL NUEVO PARTIDO ===================== -->
     <div v-if="modalNuevo" class="modal modal-blur show d-block" tabindex="-1">
       <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
@@ -160,12 +127,7 @@
               <div class="row">
                 <div class="col-md-6 mb-3">
                   <label class="form-label fw-semibold" style="font-size:0.82rem;">Lugar</label>
-                  <input
-                    v-model="nuevoForm.lugar"
-                    class="form-control"
-                    :readonly="nuevoForm.id_estadio"
-                    :placeholder="nuevoForm.id_estadio ? 'Lugar tomado del estadio seleccionado' : 'Ingresar lugar del partido'"
-                  />
+                  <input v-model="nuevoForm.lugar" class="form-control" :readonly="nuevoForm.id_estadio" :placeholder="nuevoForm.id_estadio ? 'Lugar tomado del estadio seleccionado' : 'Ingresar lugar del partido'" />
                 </div>
               </div>
               <div class="row">
@@ -213,7 +175,6 @@
     </div>
     <div v-if="modalNuevo" class="modal-backdrop show"></div>
 
-    <!-- ===================== MODAL DETALLE ===================== -->
     <div v-if="modalDetalle && partidoActual" class="modal modal-blur show d-block" tabindex="-1" style="overflow-y:auto;">
       <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content">
@@ -222,181 +183,183 @@
               <h5 class="modal-title">{{ partidoActual.equipo_casa }} vs {{ partidoActual.equipo_visitante }}</h5>
               <div class="text-muted" style="font-size:0.78rem;">
                 {{ formatFechaLarga(partidoActual.fecha_juego) }} · {{ partidoActual.hora_juego?.substring(0,5) }}
-                <span v-if="partidoActual.lugar"> · {{ partidoActual.lugar }}</span>
                 <span class="badge ms-2" :class="badgeEstado(partidoActual.estado)">{{ etiquetaEstado(partidoActual.estado) }}</span>
               </div>
             </div>
             <button type="button" class="btn-close" @click="modalDetalle = false"></button>
           </div>
 
-          <!-- Tabs -->
           <div class="modal-body p-0">
             <ul class="nav nav-tabs px-3 pt-2" style="border-bottom: 1px solid rgba(0,0,0,0.07);">
               <li class="nav-item" v-for="tab in tabsDisponibles" :key="tab.id">
-                <button class="nav-link" :class="{ active: tabActual === tab.id }" @click="tabActual = tab.id"
-                  style="font-size:0.82rem; font-weight:600;">
-                  <component :is="tab.icon" :size="15" class="me-1" />
-                  {{ tab.label }}
+                <button class="nav-link" :class="{ active: tabActual === tab.id }" @click="tabActual = tab.id" style="font-size:0.82rem; font-weight:600;">
+                  <component :is="tab.icon" :size="15" class="me-1" /> {{ tab.label }}
                 </button>
               </li>
             </ul>
 
             <div class="p-4">
-
-              <!-- TAB: INFO / ESTADO -->
               <div v-if="tabActual === 'info'">
-                <div v-if="auth.puedeGestionarPartido" class="d-flex flex-column gap-3">
-
-                  <!-- Cambiar estado -->
-                  <div class="card p-3">
+                <div v-if="esAnotadorOrAdmin" class="d-flex flex-column gap-3">
+                  <div v-if="partidoActual.estado === 'finalizado'" class="alert alert-info py-2" style="font-size:0.82rem;">
+                    <IconLock :size="15" class="me-1"/> El partido está finalizado. No puede cambiarse de estado ni ser reprogramado.
+                  </div>
+                  
+                  <div v-else class="card p-3">
                     <p class="fw-semibold mb-3" style="font-size:0.85rem;">Cambiar estado del partido</p>
                     <div class="d-flex gap-2 flex-wrap">
                       <button v-for="e in estados" :key="e.valor"
-                        class="btn btn-sm"
-                        :class="partidoActual.estado === e.valor ? 'btn-primary' : 'btn-ghost-secondary'"
+                        class="btn btn-sm" :class="partidoActual.estado === e.valor ? 'btn-primary' : 'btn-ghost-secondary'"
                         @click="cambiarEstado(e.valor)">
                         {{ e.label }}
                       </button>
                     </div>
                   </div>
 
-                  <!-- Reprogramar (no aplica a finalizados) -->
-                  <div v-if="partidoActual.estado !== 'finalizado'" class="card p-3">
+                  <div v-if="partidoActual.estado === 'programado' || partidoActual.estado === 'suspendido'" class="card p-3">
                     <p class="fw-semibold mb-3" style="font-size:0.85rem;">Reprogramar partido</p>
                     <div class="d-flex flex-wrap gap-2 align-items-end">
-                      <div>
-                        <label class="form-label mb-1" style="font-size:0.78rem;">Nueva fecha</label>
-                        <input v-model="reprogramarForm.fecha" type="date" class="form-control form-control-sm" :min="hoyStr" />
-                      </div>
-                      <div>
-                        <label class="form-label mb-1" style="font-size:0.78rem;">Nueva hora</label>
-                        <input v-model="reprogramarForm.hora" type="time" class="form-control form-control-sm" />
-                      </div>
-                      <button
-                        class="btn btn-sm btn-outline-primary"
-                        :disabled="!reprogramarForm.fecha || !reprogramarForm.hora"
-                        @click="reprogramarPartido">
+                      <div><label class="form-label mb-1" style="font-size:0.78rem;">Nueva fecha</label>
+                        <input v-model="reprogramarForm.fecha" type="date" class="form-control form-control-sm" :min="hoyStr" /></div>
+                      <div><label class="form-label mb-1" style="font-size:0.78rem;">Nueva hora</label>
+                        <input v-model="reprogramarForm.hora" type="time" class="form-control form-control-sm" /></div>
+                      <button class="btn btn-sm btn-outline-primary" :disabled="!reprogramarForm.fecha || !reprogramarForm.hora" @click="reprogramarPartido">
                         <IconCalendarEvent :size="14" class="me-1" /> Reprogramar
                       </button>
                     </div>
                   </div>
-
                 </div>
                 <div v-else class="text-muted text-center py-3" style="font-size:0.85rem;">
-                  No tienes permisos para modificar este partido.
+                  La gestión de reprogramaciones y estados es exclusiva del personal administrativo y anotadores.
                 </div>
               </div>
 
-              <!-- TAB: LINEUP -->
               <div v-if="tabActual === 'lineup'">
-                <div v-if="!auth.puedeAnotar" class="alert alert-warning py-2 mb-3" style="font-size:0.82rem;">
-                  <IconLock :size="15" class="me-1" /> Solo el <strong>Administrador, Dueño o Anotador</strong> puede cargar el lineup.
+                <div v-if="partidoActual.estado === 'finalizado'" class="alert alert-danger py-2 mb-3" style="font-size:0.82rem;">
+                  <IconLock :size="15" class="me-1" /> El lineup está bloqueado permanentemente porque el partido ya finalizó.
                 </div>
 
                 <div class="row g-3">
-                  <div v-for="(equipo, idx) in [{ id: partidoActual.id_equipo_casa, nombre: partidoActual.equipo_casa }, { id: partidoActual.id_equipo_visitante, nombre: partidoActual.equipo_visitante }]"
-                    :key="equipo.id" class="col-md-6">
+                  <div class="col-md-6">
                     <div class="card p-3">
                       <div class="d-flex align-items-center gap-2 mb-3">
-                        <div class="team-avatar" :style="idx === 0 ? '' : 'background:linear-gradient(135deg,#f97316,#ef4444);'">{{ equipo.nombre?.charAt(0) }}</div>
-                        <span class="fw-bold" style="font-size:0.875rem;">{{ equipo.nombre }}</span>
-                        <span class="badge bg-secondary-lt ms-auto" style="font-size:0.7rem;">{{ idx === 0 ? 'Local' : 'Visitante' }}</span>
+                        <div class="team-avatar">{{ partidoActual.equipo_casa?.charAt(0) }}</div>
+                        <span class="fw-bold" style="font-size:0.875rem;">{{ partidoActual.equipo_casa }}</span>
                       </div>
+
                       <div class="table-responsive">
-                        <table class="table table-sm table-vcenter mb-2">
-                          <thead>
-                            <tr style="font-size:0.72rem;">
-                              <th>#</th><th>Jugador</th><th>Pos. Juego</th><th>Titular</th>
-                            </tr>
-                          </thead>
+                        <table class="table table-sm table-vcenter">
+                          <thead><tr style="font-size:0.72rem;"><th style="width: 55px;">#</th><th>Jugador</th><th style="width: 110px;">Posición</th><th style="width: 60px;">Titular</th></tr></thead>
                           <tbody>
-                            <tr v-for="row in lineupEquipo(equipo.id)" :key="row.id_jugador" style="font-size:0.8rem;">
-                              <td>{{ row.orden_bateo }}</td>
-                              <td>{{ row.nombre }} {{ row.apellido }}</td>
-                              <td>{{ row.posicion_juego || '—' }}</td>
-                              <td><span :class="row.es_titular ? 'text-success' : 'text-muted'">{{ row.es_titular ? '✓' : '—' }}</span></td>
-                            </tr>
-                            <tr v-if="!lineupEquipo(equipo.id).length">
-                              <td colspan="4" class="text-center text-muted py-2" style="font-size:0.78rem;">Sin lineup cargado</td>
+                            <tr v-for="(jugador, idx) in lineupEquipo(partidoActual.id_equipo_casa)" :key="jugador.id_jugador">
+                              <td>
+                                <span v-if="!editandoLineupLocal" class="fw-bold">{{ jugador.orden_bateo || (idx + 1) }}</span>
+                                <input v-else type="number" min="1" max="20" v-model.number.lazy="jugador.orden_bateo" 
+                                  @focus="jugador._viejoOrden = jugador.orden_bateo" @change="ajustarOrden(jugador, partidoActual.id_equipo_casa)" 
+                                  style="width:55px;" class="form-control form-control-sm text-center" />
+                              </td>
+                              <td class="fw-semibold">{{ jugador.nombre }} {{ jugador.apellido }}</td>
+                              <td>
+                                <span v-if="!editandoLineupLocal" class="badge bg-primary-lt">{{ jugador.posicion_juego || jugador.posicion_natural || '—' }}</span>
+                                <select v-else v-model="jugador.posicion_juego" class="form-select form-select-sm">
+                                  <option value="">— Sin posición —</option><option value="P">P</option><option value="C">C</option><option value="1B">1B</option><option value="2B">2B</option><option value="3B">3B</option><option value="SS">SS</option><option value="LF">LF</option><option value="CF">CF</option><option value="RF">RF</option><option value="DH">DH</option>
+                                </select>
+                              </td>
+                              <td class="text-center">
+                                <span v-if="!editandoLineupLocal"><span :class="jugador.es_titular ? 'text-success fw-bold' : 'text-muted'">{{ jugador.es_titular ? '✓' : '—' }}</span></span>
+                                <input v-else type="checkbox" v-model="jugador.es_titular" class="form-check-input" />
+                              </td>
                             </tr>
                           </tbody>
                         </table>
                       </div>
 
-                      <!-- Formulario agregar al lineup (admin, dueno y anotador) -->
-                      <div v-if="auth.puedeAnotar">
-                        <hr class="my-2" />
-                        <p style="font-size:0.75rem; color:#64748b; font-weight:600;" class="mb-2">Agregar jugador al lineup</p>
-                        <div class="row g-1 align-items-end">
-                          <div class="col-12 mb-1">
-                            <select v-model="lineupInput[equipo.id].id_jugador" class="form-select form-select-sm">
-                              <option value="">— Jugador —</option>
-                              <option v-for="j in jugadoresPorEquipo(equipo.id)" :key="j.id_jugador" :value="j.id_jugador">
-                                {{ j.nombre }} {{ j.apellido }}
-                              </option>
-                            </select>
-                          </div>
-                          <div class="col-5">
-                            <input v-model.number="lineupInput[equipo.id].orden_bateo" type="number" min="1" max="20" class="form-control form-control-sm" placeholder="Orden" />
-                          </div>
-                          <div class="col-7">
-                            <select v-model="lineupInput[equipo.id].posicion_juego" class="form-select form-select-sm">
-                              <option value="">— Posición —</option>
-                              <option value="P">P — Pitcher</option>
-                              <option value="C">C — Catcher</option>
-                              <option value="1B">1B — Primera Base</option>
-                              <option value="2B">2B — Segunda Base</option>
-                              <option value="3B">3B — Tercera Base</option>
-                              <option value="SS">SS — Shortstop</option>
-                              <option value="LF">LF — Left Field</option>
-                              <option value="CF">CF — Center Field</option>
-                              <option value="RF">RF — Right Field</option>
-                              <option value="DH">DH — Designado</option>
-                            </select>
-                          </div>
-                          <div class="col-12 d-flex align-items-center gap-2 mt-1">
-                            <input type="checkbox" v-model="lineupInput[equipo.id].es_titular" class="form-check-input m-0" id="titular" />
-                            <label for="titular" style="font-size:0.78rem; cursor:pointer;">Titular</label>
-                            <button class="btn btn-sm btn-primary ms-auto" @click="agregarLineup(equipo.id)" :disabled="!lineupInput[equipo.id].id_jugador || !lineupInput[equipo.id].posicion_juego">
-                              Agregar
-                            </button>
-                          </div>
-                        </div>
+                      <div v-if="puedeEditarLineupLocal && partidoActual.estado !== 'finalizado'" class="mt-3 d-flex justify-content-end gap-2">
+                        <button v-if="!editandoLineupLocal" class="btn btn-sm btn-outline-primary" @click="editandoLineupLocal = true"><IconEdit :size="14" class="me-1" /> Editar Lineup</button>
+                        <template v-else>
+                          <button class="btn btn-sm btn-success" @click="guardarLineupCompleto(partidoActual.id_equipo_casa, 'local')" :disabled="guardandoLineup"><IconDeviceFloppy :size="14" class="me-1" /> Guardar</button>
+                          <button class="btn btn-sm btn-ghost-secondary" @click="editandoLineupLocal = false; verDetalle(partidoActual)">Cancelar</button>
+                        </template>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="col-md-6">
+                    <div class="card p-3">
+                      <div class="d-flex align-items-center gap-2 mb-3">
+                        <div class="team-avatar" style="background:linear-gradient(135deg,#f97316,#ef4444);">{{ partidoActual.equipo_visitante?.charAt(0) }}</div>
+                        <span class="fw-bold" style="font-size:0.875rem;">{{ partidoActual.equipo_visitante }}</span>
+                      </div>
+
+                      <div class="table-responsive">
+                        <table class="table table-sm table-vcenter">
+                          <thead><tr style="font-size:0.72rem;"><th style="width: 55px;">#</th><th>Jugador</th><th style="width: 110px;">Posición</th><th style="width: 60px;">Titular</th></tr></thead>
+                          <tbody>
+                            <tr v-for="(jugador, idx) in lineupEquipo(partidoActual.id_equipo_visitante)" :key="jugador.id_jugador">
+                              <td>
+                                <span v-if="!editandoLineupVisitante" class="fw-bold">{{ jugador.orden_bateo || (idx + 1) }}</span>
+                                <input v-else type="number" min="1" max="20" v-model.number.lazy="jugador.orden_bateo" 
+                                  @focus="jugador._viejoOrden = jugador.orden_bateo" @change="ajustarOrden(jugador, partidoActual.id_equipo_visitante)" 
+                                  style="width:55px;" class="form-control form-control-sm text-center" />
+                              </td>
+                              <td class="fw-semibold">{{ jugador.nombre }} {{ jugador.apellido }}</td>
+                              <td>
+                                <span v-if="!editandoLineupVisitante" class="badge bg-primary-lt">{{ jugador.posicion_juego || jugador.posicion_natural || '—' }}</span>
+                                <select v-else v-model="jugador.posicion_juego" class="form-select form-select-sm">
+                                  <option value="">— Sin posición —</option><option value="P">P</option><option value="C">C</option><option value="1B">1B</option><option value="2B">2B</option><option value="3B">3B</option><option value="SS">SS</option><option value="LF">LF</option><option value="CF">CF</option><option value="RF">RF</option><option value="DH">DH</option>
+                                </select>
+                              </td>
+                              <td class="text-center">
+                                <span v-if="!editandoLineupVisitante"><span :class="jugador.es_titular ? 'text-success fw-bold' : 'text-muted'">{{ jugador.es_titular ? '✓' : '—' }}</span></span>
+                                <input v-else type="checkbox" v-model="jugador.es_titular" class="form-check-input" />
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+
+                      <div v-if="puedeEditarLineupVisitante && partidoActual.estado !== 'finalizado'" class="mt-3 d-flex justify-content-end gap-2">
+                        <button v-if="!editandoLineupVisitante" class="btn btn-sm btn-outline-primary" @click="editandoLineupVisitante = true"><IconEdit :size="14" class="me-1" /> Editar Lineup</button>
+                        <template v-else>
+                          <button class="btn btn-sm btn-success" @click="guardarLineupCompleto(partidoActual.id_equipo_visitante, 'visitante')" :disabled="guardandoLineup"><IconDeviceFloppy :size="14" class="me-1" /> Guardar</button>
+                          <button class="btn btn-sm btn-ghost-secondary" @click="editandoLineupVisitante = false; verDetalle(partidoActual)">Cancelar</button>
+                        </template>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <!-- TAB: RESULTADO -->
               <div v-if="tabActual === 'resultado'">
-                <div v-if="!auth.puedeAnotar" class="alert alert-warning py-2 mb-3" style="font-size:0.82rem;">
-                  <IconLock :size="15" class="me-1" /> Solo el <strong>Anotador</strong> puede cargar el resultado.
+                <div v-if="!esAnotadorOrAdmin" class="alert alert-warning py-2 mb-3" style="font-size:0.82rem;">
+                  <IconLock :size="15" class="me-1" /> Privilegios insuficientes. Solo los anotadores oficiales pueden cargar resultados.
+                </div>
+                <div v-else-if="!partidoYaComenzo" class="alert alert-warning py-2 mb-3" style="font-size:0.82rem;">
+                  <IconInfoCircle :size="15" class="me-1" /> El partido aún no ha comenzado. No puedes registrar un resultado futuro.
+                </div>
+                <div v-else-if="partidoBloqueado24h" class="alert alert-warning py-2 mb-3" style="font-size:0.82rem; background-color:#fffbeb; color:#b45309; border-color:#fde68a;">
+                  <IconAlertTriangle :size="15" class="me-1" /> Han pasado más de 24h desde el fin del encuentro. Cualquier corrección dejará un registro de auditoría.
                 </div>
 
                 <div class="card p-4">
-                  <!-- Marcador visual -->
                   <div class="d-flex align-items-center justify-content-center gap-4 mb-4 p-3" style="background:rgba(99,102,241,0.06); border-radius:14px;">
                     <div class="text-center">
                       <div class="team-avatar mx-auto mb-2" style="width:48px;height:48px;font-size:1.1rem;">{{ partidoActual.equipo_casa?.charAt(0) }}</div>
                       <div class="fw-semibold" style="font-size:0.82rem;">{{ partidoActual.equipo_casa }}</div>
-                      <div class="fw-800 mt-1" style="font-size:2.5rem; color:#1e293b; line-height:1;">{{ resultadoForm.carreras_home }}</div>
+                      <div class="fw-800 mt-1" style="font-size:2.5rem; color:#1e293b;">{{ resultadoForm.carreras_home }}</div>
                     </div>
                     <div class="text-muted fw-bold" style="font-size:1.2rem;">—</div>
                     <div class="text-center">
                       <div class="team-avatar mx-auto mb-2" style="width:48px;height:48px;font-size:1.1rem;background:linear-gradient(135deg,#f97316,#ef4444);">{{ partidoActual.equipo_visitante?.charAt(0) }}</div>
                       <div class="fw-semibold" style="font-size:0.82rem;">{{ partidoActual.equipo_visitante }}</div>
-                      <div class="fw-800 mt-1" style="font-size:2.5rem; color:#1e293b; line-height:1;">{{ resultadoForm.carreras_visitantes }}</div>
+                      <div class="fw-800 mt-1" style="font-size:2.5rem; color:#1e293b;">{{ resultadoForm.carreras_visitantes }}</div>
                     </div>
                   </div>
 
-                  <form v-if="auth.puedeAnotar" @submit.prevent="guardarResultado">
+                  <form v-if="esAnotadorOrAdmin && partidoYaComenzo" @submit.prevent="guardarResultado">
                     <div class="row g-2 mb-3">
-                      <div class="col-12"><p class="fw-semibold mb-1" style="font-size:0.82rem; color:#64748b;">CARRERAS</p></div>
-                      <div class="col-6"><label class="form-label" style="font-size:0.78rem;">{{ partidoActual.equipo_casa }}</label>
-                        <input v-model.number="resultadoForm.carreras_home" type="number" min="0" class="form-control form-control-sm" /></div>
-                      <div class="col-6"><label class="form-label" style="font-size:0.78rem;">{{ partidoActual.equipo_visitante }}</label>
-                        <input v-model.number="resultadoForm.carreras_visitantes" type="number" min="0" class="form-control form-control-sm" /></div>
+                      <div class="col-6"><label class="form-label">Carreras Local</label><input v-model.number="resultadoForm.carreras_home" type="number" min="0" class="form-control" /></div>
+                      <div class="col-6"><label class="form-label">Carreras Visitante</label><input v-model.number="resultadoForm.carreras_visitantes" type="number" min="0" class="form-control" /></div>
                     </div>
                     <div class="row g-2 mb-3">
                       <div class="col-12"><p class="fw-semibold mb-1" style="font-size:0.82rem; color:#64748b;">HITS</p></div>
@@ -409,222 +372,131 @@
                       <div class="col-6"><input v-model.number="resultadoForm.errores_visitantes" type="number" min="0" class="form-control form-control-sm" placeholder="Errores visitante" /></div>
                     </div>
                     <div class="row g-2 mb-3">
-                      <div class="col-4">
-                        <label class="form-label" style="font-size:0.78rem;">Innings totales</label>
-                        <input v-model.number="resultadoForm.innings_totales" type="number" min="1" max="20" class="form-control form-control-sm" />
-                      </div>
+                      <div class="col-4"><label class="form-label">Innings totales</label><input v-model.number="resultadoForm.innings_totales" type="number" min="1" max="20" class="form-control" /></div>
                     </div>
                     <div class="mb-3">
-                      <label class="form-label" style="font-size:0.78rem;">Observaciones</label>
+                      <label class="form-label">Observaciones</label>
                       <textarea v-model="resultadoForm.observaciones" class="form-control form-control-sm" rows="2"></textarea>
                     </div>
                     <div class="text-end">
                       <button type="submit" class="btn btn-primary d-inline-flex align-items-center gap-2" :disabled="guardandoResultado">
-                        <span v-if="guardandoResultado" class="spinner-border spinner-border-sm"></span>
-                        <IconDeviceFloppy v-else :size="16" />
-                        Guardar Resultado (marca partido como Finalizado)
+                        <span v-if="guardandoResultado" class="spinner-border spinner-border-sm"></span><IconDeviceFloppy v-else :size="16" /> Guardar Resultado
                       </button>
                     </div>
                   </form>
-
-                  <div v-else class="text-muted text-center py-3" style="font-size:0.82rem;">
-                    El resultado debe ser cargado por el Anotador.
-                  </div>
                 </div>
               </div>
 
-              <!-- TAB: ESTADÍSTICAS -->
               <div v-if="tabActual === 'estadisticas'">
-                <div v-if="!auth.puedeAnotar" class="alert alert-warning py-2 mb-3" style="font-size:0.82rem;">
-                  <IconLock :size="15" class="me-1" /> Solo el <strong>Anotador</strong> puede cargar estadísticas.
+                <div v-if="!esAnotadorOrAdmin" class="alert alert-warning py-2 mb-3" style="font-size:0.82rem;">
+                  <IconLock :size="15" class="me-1" /> Privilegios insuficientes. Solo los anotadores oficiales pueden cargar estadísticas.
+                </div>
+                <div v-else-if="!partidoYaComenzo" class="alert alert-warning py-2 mb-3" style="font-size:0.82rem;">
+                  <IconInfoCircle :size="15" class="me-1" /> El partido aún no ha comenzado.
+                </div>
+                <div v-else-if="partidoBloqueado24h" class="alert alert-warning py-2 mb-3" style="font-size:0.82rem; background-color:#fffbeb; color:#b45309; border-color:#fde68a;">
+                  <IconAlertTriangle :size="15" class="me-1" /> Han pasado más de 24h desde el fin del encuentro. Cualquier corrección dejará un registro de auditoría.
                 </div>
 
-                <!-- Bateadores -->
                 <div class="mb-4">
-                  <h6 class="fw-bold mb-3" style="font-size:0.875rem; color:#1e293b;">Estadísticas de Bateadores</h6>
+                  <h6 class="fw-bold mb-3" style="font-size:0.875rem;">Bateadores</h6>
                   <div class="table-responsive">
-                    <table class="table table-sm table-vcenter" style="font-size:0.78rem;">
+                    <table class="table table-sm table-vcenter">
                       <thead>
-                        <tr>
-                          <th>Jugador</th><th>Equipo</th>
-                          <th><AbrevTooltip ab="AB" /></th><th><AbrevTooltip ab="H" /></th><th><AbrevTooltip ab="2B" /></th>
-                          <th><AbrevTooltip ab="3B" /></th><th><AbrevTooltip ab="HR" /></th><th><AbrevTooltip ab="R" /></th>
-                          <th><AbrevTooltip ab="RBI" /></th><th><AbrevTooltip ab="BB" /></th>
-                          <th><AbrevTooltip ab="SO" /></th>
-                          <th v-if="auth.puedeAnotar">Acción</th>
-                        </tr>
+                        <tr><th>Jugador</th><th><AbrevTooltip ab="AB" /></th><th><AbrevTooltip ab="H" /></th><th><AbrevTooltip ab="HR" /></th><th v-if="esAnotadorOrAdmin && partidoYaComenzo">Acción</th></tr>
                       </thead>
                       <tbody>
-                        <tr v-if="!desempeno.bateadores.length">
-                          <td :colspan="auth.puedeAnotar ? 12 : 11" class="text-center text-muted py-3">Sin estadísticas de bateadores</td>
-                        </tr>
                         <tr v-for="b in desempeno.bateadores" :key="b.id_jugador">
                           <td class="fw-semibold">{{ b.nombre }} {{ b.apellido }}</td>
-                          <td class="text-muted">{{ b.nombre_equipo }}</td>
-                          <template v-if="auth.puedeAnotar">
-                            <td><input type="number" min="0" class="form-control form-control-sm p-0 text-center" style="width:40px;" v-model.number="b.turnos_al_bate" /></td>
-                            <td><input type="number" min="0" class="form-control form-control-sm p-0 text-center" style="width:40px;" v-model.number="b.hits" /></td>
-                            <td><input type="number" min="0" class="form-control form-control-sm p-0 text-center" style="width:40px;" v-model.number="b.dobles" /></td>
-                            <td><input type="number" min="0" class="form-control form-control-sm p-0 text-center" style="width:40px;" v-model.number="b.triples" /></td>
-                            <td><input type="number" min="0" class="form-control form-control-sm p-0 text-center" style="width:40px;" v-model.number="b.jonrones" /></td>
-                            <td><input type="number" min="0" class="form-control form-control-sm p-0 text-center" style="width:40px;" v-model.number="b.carreras" /></td>
-                            <td><input type="number" min="0" class="form-control form-control-sm p-0 text-center" style="width:40px;" v-model.number="b.carreras_impulsadas" /></td>
-                            <td><input type="number" min="0" class="form-control form-control-sm p-0 text-center" style="width:40px;" v-model.number="b.bolas" /></td>
-                            <td><input type="number" min="0" class="form-control form-control-sm p-0 text-center" style="width:40px;" v-model.number="b.strikes" /></td>
-                            <td>
-                              <button class="btn btn-xs btn-ghost-primary" @click="guardarStatBateador(b)" title="Guardar">
-                                <IconDeviceFloppy :size="13" />
-                              </button>
-                            </td>
+                          <template v-if="esAnotadorOrAdmin && partidoYaComenzo">
+                            <td><input type="number" min="0" class="form-control form-control-sm text-center" style="width:50px;" v-model.number="b.turnos_al_bate" /></td>
+                            <td><input type="number" min="0" class="form-control form-control-sm text-center" style="width:50px;" v-model.number="b.hits" /></td>
+                            <td><input type="number" min="0" class="form-control form-control-sm text-center" style="width:50px;" v-model.number="b.jonrones" /></td>
+                            <td><button class="btn btn-xs btn-ghost-primary" @click="guardarStatBateador(b)"><IconDeviceFloppy :size="13" /></button></td>
                           </template>
                           <template v-else>
-                            <td>{{ b.turnos_al_bate }}</td><td>{{ b.hits }}</td><td>{{ b.dobles }}</td>
-                            <td>{{ b.triples }}</td><td>{{ b.jonrones }}</td><td>{{ b.carreras }}</td>
-                            <td>{{ b.carreras_impulsadas }}</td><td>{{ b.bolas }}</td><td>{{ b.strikes }}</td>
+                            <td class="text-center">{{ b.turnos_al_bate }}</td><td class="text-center">{{ b.hits }}</td><td class="text-center">{{ b.jonrones }}</td>
                           </template>
                         </tr>
                       </tbody>
                     </table>
                   </div>
-
-                  <!-- Agregar bateador (anotador) -->
-                  <div v-if="auth.puedeAnotar" class="mt-2">
-                    <div class="d-flex gap-2 align-items-center">
-                      <select v-model="nuevoBateador" class="form-select form-select-sm" style="max-width:280px;">
-                        <option value="">Agregar jugador a bateadores...</option>
-                        <optgroup :label="partidoActual.equipo_casa">
-                          <option v-for="j in jugadoresNoEnBateadores.casa" :key="j.id_jugador" :value="j.id_jugador">
-                            {{ j.nombre }} {{ j.apellido }}
-                          </option>
-                        </optgroup>
-                        <optgroup :label="partidoActual.equipo_visitante">
-                          <option v-for="j in jugadoresNoEnBateadores.visitante" :key="j.id_jugador" :value="j.id_jugador">
-                            {{ j.nombre }} {{ j.apellido }}
-                          </option>
-                        </optgroup>
-                      </select>
-                      <button class="btn btn-sm btn-outline-primary" :disabled="!nuevoBateador" @click="agregarBateador">Agregar</button>
-                    </div>
-                  </div>
                 </div>
 
-                <!-- Pitchers -->
                 <div>
-                  <h6 class="fw-bold mb-3" style="font-size:0.875rem; color:#1e293b;">Estadísticas de Pitchers</h6>
+                  <h6 class="fw-bold mb-3" style="font-size:0.875rem;">Pitchers</h6>
                   <div class="table-responsive">
-                    <table class="table table-sm table-vcenter" style="font-size:0.78rem;">
+                    <table class="table table-sm table-vcenter">
                       <thead>
-                        <tr>
-                          <th>Pitcher</th><th>Equipo</th>
-                          <th><AbrevTooltip ab="IP" /></th><th><AbrevTooltip ab="H" /></th>
-                          <th><AbrevTooltip ab="R" /></th><th><AbrevTooltip ab="ER" /></th>
-                          <th><AbrevTooltip ab="HR" /></th><th><AbrevTooltip ab="BB" /></th>
-                          <th><AbrevTooltip ab="SO" /></th><th><AbrevTooltip ab="G" /></th><th><AbrevTooltip ab="P" /></th><th><AbrevTooltip ab="S" /></th>
-                          <th v-if="auth.puedeAnotar">Acción</th>
-                        </tr>
+                        <tr><th>Jugador</th><th><AbrevTooltip ab="IP" /></th><th><AbrevTooltip ab="H" /></th><th><AbrevTooltip ab="SO" /></th><th v-if="esAnotadorOrAdmin && partidoYaComenzo">Acción</th></tr>
                       </thead>
                       <tbody>
-                        <tr v-if="!desempeno.pitchers.length">
-                          <td :colspan="auth.puedeAnotar ? 13 : 12" class="text-center text-muted py-3">Sin estadísticas de pitchers</td>
-                        </tr>
                         <tr v-for="pt in desempeno.pitchers" :key="pt.id_jugador">
                           <td class="fw-semibold">{{ pt.nombre }} {{ pt.apellido }}</td>
-                          <td class="text-muted">{{ pt.nombre_equipo }}</td>
-                          <template v-if="auth.puedeAnotar">
-                            <td><input type="number" min="0" step="0.1" class="form-control form-control-sm p-0 text-center" style="width:45px;" v-model.number="pt.innings_pitcheados" /></td>
-                            <td><input type="number" min="0" class="form-control form-control-sm p-0 text-center" style="width:40px;" v-model.number="pt.hits_permitidos" /></td>
-                            <td><input type="number" min="0" class="form-control form-control-sm p-0 text-center" style="width:40px;" v-model.number="pt.carreras_permitidas" /></td>
-                            <td><input type="number" min="0" class="form-control form-control-sm p-0 text-center" style="width:40px;" v-model.number="pt.carreras_limpias" /></td>
-                            <td><input type="number" min="0" class="form-control form-control-sm p-0 text-center" style="width:40px;" v-model.number="pt.jonrones_permitidos" /></td>
-                            <td><input type="number" min="0" class="form-control form-control-sm p-0 text-center" style="width:40px;" v-model.number="pt.bases_por_bolas" /></td>
-                            <td><input type="number" min="0" class="form-control form-control-sm p-0 text-center" style="width:40px;" v-model.number="pt.ponches" /></td>
-                            <td><input type="number" min="0" max="1" class="form-control form-control-sm p-0 text-center" style="width:40px;" v-model.number="pt.ganado" /></td>
-                            <td><input type="number" min="0" max="1" class="form-control form-control-sm p-0 text-center" style="width:40px;" v-model.number="pt.perdido" /></td>
-                            <td><input type="number" min="0" max="1" class="form-control form-control-sm p-0 text-center" style="width:40px;" v-model.number="pt.salvado" /></td>
-                            <td>
-                              <button class="btn btn-xs btn-ghost-primary" @click="guardarStatPitcher(pt)" title="Guardar">
-                                <IconDeviceFloppy :size="13" />
-                              </button>
-                            </td>
+                          <template v-if="esAnotadorOrAdmin && partidoYaComenzo">
+                            <td><input type="number" min="0" step="0.1" class="form-control form-control-sm text-center" style="width:55px;" v-model.number="pt.innings_pitcheados" /></td>
+                            <td><input type="number" min="0" class="form-control form-control-sm text-center" style="width:50px;" v-model.number="pt.hits_permitidos" /></td>
+                            <td><input type="number" min="0" class="form-control form-control-sm text-center" style="width:50px;" v-model.number="pt.ponches" /></td>
+                            <td><button class="btn btn-xs btn-ghost-primary" @click="guardarStatPitcher(pt)"><IconDeviceFloppy :size="13" /></button></td>
                           </template>
                           <template v-else>
-                            <td>{{ pt.innings_pitcheados }}</td><td>{{ pt.hits_permitidos }}</td>
-                            <td>{{ pt.carreras_permitidas }}</td><td>{{ pt.carreras_limpias }}</td>
-                            <td>{{ pt.jonrones_permitidos }}</td><td>{{ pt.bases_por_bolas }}</td>
-                            <td>{{ pt.ponches }}</td>
-                            <td>{{ pt.ganado ? '✓' : '' }}</td><td>{{ pt.perdido ? '✓' : '' }}</td><td>{{ pt.salvado ? '✓' : '' }}</td>
+                            <td class="text-center">{{ pt.innings_pitcheados }}</td><td class="text-center">{{ pt.hits_permitidos }}</td><td class="text-center">{{ pt.ponches }}</td>
                           </template>
                         </tr>
                       </tbody>
                     </table>
                   </div>
-
-                  <!-- Agregar pitcher (anotador) -->
-                  <div v-if="auth.puedeAnotar" class="mt-2">
-                    <div class="d-flex gap-2 align-items-center">
-                      <select v-model="nuevoPitcher" class="form-select form-select-sm" style="max-width:280px;">
-                        <option value="">Agregar pitcher...</option>
-                        <optgroup :label="partidoActual.equipo_casa">
-                          <option v-for="j in pitchersNoEnStats.casa" :key="j.id_jugador" :value="j.id_jugador">
-                            {{ j.nombre }} {{ j.apellido }}
-                          </option>
-                        </optgroup>
-                        <optgroup :label="partidoActual.equipo_visitante">
-                          <option v-for="j in pitchersNoEnStats.visitante" :key="j.id_jugador" :value="j.id_jugador">
-                            {{ j.nombre }} {{ j.apellido }}
-                          </option>
-                        </optgroup>
-                      </select>
-                      <button class="btn btn-sm btn-outline-primary" :disabled="!nuevoPitcher" @click="agregarPitcher">Agregar</button>
-                    </div>
-                  </div>
                 </div>
-
               </div>
-              <!-- TAB: TAQUILLA -->
+
               <div v-if="tabActual === 'taquilla'">
+                <div v-if="partidoBloqueado24h" class="alert alert-warning py-2 mb-3" style="font-size:0.82rem; background-color:#fffbeb; color:#b45309; border-color:#fde68a;">
+                  <IconAlertTriangle :size="15" class="me-1" /> Han pasado más de 24h. Cualquier corrección a la taquilla dejará un registro de auditoría.
+                </div>
                 <div class="card p-4">
                   <h6 class="fw-bold mb-4" style="font-size:0.875rem; color:#1e293b;">Datos de Taquilla</h6>
-                  <div class="row g-3">
-                    <div class="col-md-4 mb-2">
-                      <label class="form-label" style="font-size:0.78rem;">Capacidad del estadio</label>
-                      <input v-model.number="taquillaForm.capacidad_estadio" type="number" min="0" class="form-control form-control-sm" />
+                  <div>
+                    <div class="row g-3">
+                      <div class="col-md-4 mb-2">
+                        <label class="form-label" style="font-size:0.78rem;">Capacidad del estadio</label>
+                        <input v-model.number="taquillaForm.capacidad_estadio" type="number" min="0" class="form-control form-control-sm" />
+                      </div>
                     </div>
-                  </div>
-                  <div class="row g-3 mt-1">
-                    <div class="col-12"><p class="fw-semibold mb-1" style="font-size:0.82rem; color:#64748b;">ZONA GENERAL</p></div>
-                    <div class="col-md-6">
-                      <label class="form-label" style="font-size:0.78rem;">Boletos vendidos</label>
-                      <input v-model.number="taquillaForm.boletos_general" type="number" min="0" class="form-control form-control-sm" />
+                    <div class="row g-3 mt-1">
+                      <div class="col-12"><p class="fw-semibold mb-1" style="font-size:0.82rem; color:#64748b;">ZONA GENERAL</p></div>
+                      <div class="col-md-6">
+                        <label class="form-label" style="font-size:0.78rem;">Boletos vendidos</label>
+                        <input v-model.number="taquillaForm.boletos_general" type="number" min="0" class="form-control form-control-sm" />
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label" style="font-size:0.78rem;">Precio unitario (Bs.)</label>
+                        <input v-model.number="taquillaForm.precio_general" type="number" min="0" step="0.01" class="form-control form-control-sm" />
+                      </div>
                     </div>
-                    <div class="col-md-6">
-                      <label class="form-label" style="font-size:0.78rem;">Precio unitario (Bs.)</label>
-                      <input v-model.number="taquillaForm.precio_general" type="number" min="0" step="0.01" class="form-control form-control-sm" />
+                    <div class="row g-3 mt-1">
+                      <div class="col-12"><p class="fw-semibold mb-1" style="font-size:0.82rem; color:#64748b;">ZONA VIP</p></div>
+                      <div class="col-md-6">
+                        <label class="form-label" style="font-size:0.78rem;">Boletos vendidos</label>
+                        <input v-model.number="taquillaForm.boletos_vip" type="number" min="0" class="form-control form-control-sm" />
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label" style="font-size:0.78rem;">Precio unitario (Bs.)</label>
+                        <input v-model.number="taquillaForm.precio_vip" type="number" min="0" step="0.01" class="form-control form-control-sm" />
+                      </div>
                     </div>
-                  </div>
-                  <div class="row g-3 mt-1">
-                    <div class="col-12"><p class="fw-semibold mb-1" style="font-size:0.82rem; color:#64748b;">ZONA VIP</p></div>
-                    <div class="col-md-6">
-                      <label class="form-label" style="font-size:0.78rem;">Boletos vendidos</label>
-                      <input v-model.number="taquillaForm.boletos_vip" type="number" min="0" class="form-control form-control-sm" />
+                    <div class="mt-3 p-3 rounded" style="background:rgba(99,102,241,0.06);">
+                      <div class="fw-semibold" style="font-size:0.82rem; color:#64748b;">RECAUDACIÓN TOTAL ESTIMADA</div>
+                      <div class="fw-bold" style="font-size:1.4rem; color:#1e293b;">
+                        {{ recaudadoTaquilla.toLocaleString('es-VE', { minimumFractionDigits: 2 }) }} Bs.
+                      </div>
                     </div>
-                    <div class="col-md-6">
-                      <label class="form-label" style="font-size:0.78rem;">Precio unitario (Bs.)</label>
-                      <input v-model.number="taquillaForm.precio_vip" type="number" min="0" step="0.01" class="form-control form-control-sm" />
+                    <div class="text-end mt-3">
+                      <button class="btn btn-primary d-inline-flex align-items-center gap-2" :disabled="guardandoTaquilla" @click="guardarTaquilla">
+                        <span v-if="guardandoTaquilla" class="spinner-border spinner-border-sm"></span>
+                        <IconDeviceFloppy v-else :size="16" />
+                        Guardar Taquilla
+                      </button>
                     </div>
-                  </div>
-                  <div class="mt-3 p-3 rounded" style="background:rgba(99,102,241,0.06);">
-                    <div class="fw-semibold" style="font-size:0.82rem; color:#64748b;">RECAUDACIÓN TOTAL ESTIMADA</div>
-                    <div class="fw-bold" style="font-size:1.4rem; color:#1e293b;">
-                      {{ recaudadoTaquilla.toLocaleString('es-VE', { minimumFractionDigits: 2 }) }} Bs.
-                    </div>
-                  </div>
-                  <div class="text-end mt-3">
-                    <button class="btn btn-primary d-inline-flex align-items-center gap-2" :disabled="guardandoTaquilla" @click="guardarTaquilla">
-                      <span v-if="guardandoTaquilla" class="spinner-border spinner-border-sm"></span>
-                      <IconDeviceFloppy v-else :size="16" />
-                      Guardar Taquilla
-                    </button>
                   </div>
                 </div>
               </div>
@@ -635,7 +507,6 @@
       </div>
     </div>
     <div v-if="modalDetalle" class="modal-backdrop show"></div>
-
   </div>
 </template>
 
@@ -649,13 +520,14 @@ import AbrevTooltip from '@/components/AbrevTooltip.vue'
 import {
   IconPlus, IconCalendarEvent, IconEye, IconTrash, IconMapPin,
   IconLock, IconDeviceFloppy, IconInfoCircle, IconListDetails,
-  IconTrophy, IconChartBar, IconTicket, IconSearch,
+  IconTrophy, IconChartBar, IconTicket, IconSearch, IconEdit, IconAlertTriangle
 } from '@tabler/icons-vue'
 
 const toast   = useToast()
 const confirm = useConfirm()
-
 const auth    = useAuthStore()
+
+// ========== DATOS PRINCIPALES ==========
 const partidos   = ref([])
 const equipos    = ref([])
 const jugadores  = ref([])
@@ -696,8 +568,10 @@ const desempeno     = ref({ bateadores: [], pitchers: [] })
 const resultadoForm = ref({ carreras_home: 0, carreras_visitantes: 0, hits_home: 0, hits_visitantes: 0, errores_home: 0, errores_visitantes: 0, innings_totales: 9, observaciones: '' })
 const guardandoResultado = ref(false)
 
-// Lineup input por equipo
-const lineupInput = ref({})
+// Lineup Editable Variables
+const editandoLineupLocal = ref(false)
+const editandoLineupVisitante = ref(false)
+const guardandoLineup = ref(false)
 const nuevoBateador = ref('')
 const nuevoPitcher  = ref('')
 
@@ -708,6 +582,25 @@ const recaudadoTaquilla = computed(() =>
   (taquillaForm.value.boletos_general * taquillaForm.value.precio_general) +
   (taquillaForm.value.boletos_vip     * taquillaForm.value.precio_vip)
 )
+
+// =====================================================================
+// DEFINICIÓN PERFECTA DE ROLES (COMPUTADAS)
+// =====================================================================
+const esAdministrador = computed(() => auth.rol === 'administrador' || auth.esAdmin);
+const esDueno = computed(() => auth.rol === 'dueno' || auth.esDueno);
+const esAnotadorOrAdmin = computed(() => auth.rol === 'anotador' || esAdministrador.value);
+
+const puedeEditarLineupLocal = computed(() => {
+  if (esAnotadorOrAdmin.value) return true;
+  if (esDueno.value && Number(auth.id_equipo) === Number(partidoActual.value?.id_equipo_casa)) return true;
+  return false;
+});
+
+const puedeEditarLineupVisitante = computed(() => {
+  if (esAnotadorOrAdmin.value) return true;
+  if (esDueno.value && Number(auth.id_equipo) === Number(partidoActual.value?.id_equipo_visitante)) return true;
+  return false;
+});
 
 const tabsDisponibles = computed(() => {
   const tabs = [
@@ -720,6 +613,28 @@ const tabsDisponibles = computed(() => {
   return tabs
 })
 
+// =====================================================================
+// VARIABLES COMPUTADAS PARA REGLAS DE TIEMPO (24H Y FUTURO)
+// =====================================================================
+const partidoYaComenzo = computed(() => {
+  if (!partidoActual.value || !partidoActual.value.fecha_juego || !partidoActual.value.hora_juego) return false;
+  const fechaStr = typeof partidoActual.value.fecha_juego === 'string' ? partidoActual.value.fecha_juego.split('T')[0] : partidoActual.value.fecha_juego.toISOString().split('T')[0];
+  const fechaHoraJuego = new Date(`${fechaStr}T${partidoActual.value.hora_juego}`);
+  return new Date() >= fechaHoraJuego;
+});
+
+const partidoBloqueado24h = computed(() => {
+  if (!partidoActual.value || partidoActual.value.estado !== 'finalizado') return false;
+  
+  const fechaStr = typeof partidoActual.value.fecha_juego === 'string' ? partidoActual.value.fecha_juego.split('T')[0] : partidoActual.value.fecha_juego.toISOString().split('T')[0];
+  const fechaJuego = new Date(`${fechaStr}T${partidoActual.value.hora_juego}`);
+  
+  const limiteEdicion = new Date(fechaJuego.getTime() + (30 * 60 * 60 * 1000));
+  return new Date() > limiteEdicion;
+});
+
+// =====================================================================
+
 const paginaActual   = ref(1)
 const porPagina      = 8
 
@@ -727,7 +642,7 @@ const partidosFiltrados = computed(() => {
   const q = busqueda.value.toLowerCase().trim()
   const equipoId = auth.id_equipo ? Number(auth.id_equipo) : null
   return partidos.value.filter(p => {
-    if (auth.esDueno && equipoId) {
+    if (esDueno.value && equipoId) {
       if (Number(p.id_equipo_casa) !== equipoId && Number(p.id_equipo_visitante) !== equipoId) {
         return false
       }
@@ -749,7 +664,6 @@ const partidosPagina = computed(() => {
   return partidosFiltrados.value.slice(inicio, inicio + porPagina)
 })
 
-// Resetear página al cambiar filtro
 watch([filtroEstado, busqueda], () => { paginaActual.value = 1 })
 
 function contarEstado(estado) {
@@ -784,7 +698,93 @@ function formatFechaLarga(f) {
 }
 
 function lineupEquipo(id_equipo) {
-  return lineup.value.filter(l => l.id_equipo === id_equipo)
+  return lineup.value
+    .filter(l => l.id_equipo === id_equipo)
+    .sort((a, b) => {
+      const ordA = a.orden_bateo || 999;
+      const ordB = b.orden_bateo || 999;
+      return ordA - ordB;
+    });
+}
+
+function ajustarOrden(jugadorModificado, id_equipo) {
+  let nuevoOrden = jugadorModificado.orden_bateo;
+  let viejoOrden = jugadorModificado._viejoOrden;
+
+  if (!nuevoOrden || nuevoOrden < 1) {
+    jugadorModificado.orden_bateo = null;
+    jugadorModificado._viejoOrden = null;
+    reindexarLineup(id_equipo);
+    return;
+  }
+
+  if (nuevoOrden === viejoOrden) return;
+
+  const equipoLineup = lineup.value.filter(j => j.id_equipo === id_equipo);
+
+  equipoLineup.forEach(j => {
+    if (j.id_jugador !== jugadorModificado.id_jugador && j.orden_bateo) {
+      if ((!viejoOrden || viejoOrden > nuevoOrden) && j.orden_bateo >= nuevoOrden && j.orden_bateo < (viejoOrden || 999)) {
+        j.orden_bateo++;
+      } 
+      else if (viejoOrden && viejoOrden < nuevoOrden && j.orden_bateo <= nuevoOrden && j.orden_bateo > viejoOrden) {
+        j.orden_bateo--;
+      }
+    }
+  });
+
+  reindexarLineup(id_equipo);
+}
+
+function reindexarLineup(id_equipo) {
+  const equipoLineup = lineup.value.filter(j => j.id_equipo === id_equipo);
+  const ordenados = equipoLineup
+    .filter(j => j.orden_bateo)
+    .sort((a, b) => a.orden_bateo - b.orden_bateo);
+    
+  ordenados.forEach((j, idx) => { j.orden_bateo = idx + 1; });
+}
+
+async function guardarLineupCompleto(id_equipo, tipo) {
+  guardandoLineup.value = true;
+  try {
+    const jugadoresAguardar = lineup.value.filter(l => l.id_equipo === id_equipo && (l.posicion_juego || l.orden_bateo));
+
+    const posiciones = jugadoresAguardar.map(j => j.posicion_juego).filter(p => p && p.trim() !== '');
+    if (new Set(posiciones).size !== posiciones.length) {
+      toast.warn('❌ No puedes tener dos jugadores con la misma posición defensiva.');
+      guardandoLineup.value = false;
+      return;
+    }
+
+    const ordenes = jugadoresAguardar.map(j => j.orden_bateo).filter(o => o);
+    if (new Set(ordenes).size !== ordenes.length) {
+      toast.warn('❌ Hay números de orden al bate repetidos.');
+      guardandoLineup.value = false;
+      return;
+    }
+
+    const entries = jugadoresAguardar.map(j => ({
+      id_jugador: j.id_jugador,
+      id_equipo: id_equipo,
+      orden_bateo: j.orden_bateo || null,
+      posicion_juego: j.posicion_juego,
+      es_titular: j.es_titular ? 1 : 0
+    }));
+
+    await api.post(`/partidos/${partidoActual.value.id_partido}/lineup`, { entries });
+    toast.success('✅ Lineup guardado correctamente');
+
+    if (tipo === 'local') editandoLineupLocal.value = false;
+    if (tipo === 'visitante') editandoLineupVisitante.value = false;
+
+    const { data } = await api.get(`/partidos/${partidoActual.value.id_partido}/lineup`);
+    lineup.value = data;
+  } catch (e) {
+    toast.error(e.response?.data?.error || 'Error al guardar lineup');
+  } finally {
+    guardandoLineup.value = false;
+  }
 }
 
 function jugadoresPorEquipo(id_equipo) {
@@ -816,7 +816,7 @@ async function cargar() {
       api.get('/equipos'),
       api.get('/jugadores'),
       api.get('/temporadas'),
-      auth.esAdmin ? api.get('/estadios?activo=1') : Promise.resolve({ data: [] }),
+      (auth.esAdmin || esAdministrador.value) ? api.get('/estadios?activo=1') : Promise.resolve({ data: [] }),
     ])
     partidos.value   = resP.data
     equipos.value    = resE.data
@@ -833,12 +833,9 @@ async function verDetalle(partido) {
   nuevoBateador.value = ''
   nuevoPitcher.value  = ''
   reprogramarForm.value = { fecha: partido.fecha_juego?.substring(0, 10) || '', hora: partido.hora_juego?.substring(0, 5) || '' }
-
-  // Inicializar lineupInput por equipo
-  lineupInput.value = {
-    [partido.id_equipo_casa]:       { id_jugador: '', orden_bateo: 1, posicion_juego: '', es_titular: true },
-    [partido.id_equipo_visitante]:  { id_jugador: '', orden_bateo: 1, posicion_juego: '', es_titular: true },
-  }
+  
+  editandoLineupLocal.value = false
+  editandoLineupVisitante.value = false
 
   const [resL, resD, resR, resT] = await Promise.all([
     api.get(`/partidos/${partido.id_partido}/lineup`),
@@ -849,14 +846,12 @@ async function verDetalle(partido) {
   lineup.value = resL.data
   desempeno.value = resD.data
 
-  // Precarga resultado si existe
   if (resR.data) {
     Object.assign(resultadoForm.value, resR.data)
   } else {
     resultadoForm.value = { carreras_home: 0, carreras_visitantes: 0, hits_home: 0, hits_visitantes: 0, errores_home: 0, errores_visitantes: 0, innings_totales: 9, observaciones: '' }
   }
 
-  // Guardar resultado en partidoActual para mostrar el marcador
   partidoActual.value.resultado = resR.data
 
   if (resT.data) Object.assign(taquillaForm.value, resT.data)
@@ -927,52 +922,17 @@ async function reprogramarPartido() {
       partidos.value[idx].hora_juego  = hora + ':00'
       partidos.value[idx].estado = 'programado'
     }
+    toast.success('Partido reprogramado con éxito');
   } catch (e) {
     toast.error(e.response?.data?.error || 'Error al reprogramar el partido')
   }
 }
 
-async function agregarLineup(id_equipo) {
-  const inp = lineupInput.value[id_equipo]
-  if (!inp.id_jugador) return
-
-  // Validar posición seleccionada
-  if (!inp.posicion_juego) {
-    toast.warn('Selecciona una posición en juego.'); return
-  }
-
-  // Validar orden al bate positivo
-  if (!inp.orden_bateo || inp.orden_bateo < 1) {
-    toast.warn('El orden al bate debe ser mayor a 0.'); return
-  }
-
-  const lineupDelEquipo = lineupEquipo(id_equipo)
-
-  // Validar orden al bate no duplicado dentro del equipo
-  if (lineupDelEquipo.some(l => l.orden_bateo === inp.orden_bateo)) {
-    toast.warn(`Ya existe un jugador con el orden al bate #${inp.orden_bateo} en este equipo.`); return
-  }
-
-  // Validar posición no duplicada dentro del equipo (excepto DH que podría no tener posición defensiva)
-  if (lineupDelEquipo.some(l => l.posicion_juego === inp.posicion_juego)) {
-    toast.warn(`Ya existe un jugador en la posición ${inp.posicion_juego} en este equipo.`); return
-  }
-
-  // Validar que el jugador no esté ya en el lineup
-  if (lineupDelEquipo.some(l => l.id_jugador === inp.id_jugador)) {
-    toast.warn('Este jugador ya está en el lineup.'); return
-  }
-
-  const entry = { id_partido: partidoActual.value.id_partido, id_equipo, ...inp }
-  await api.post(`/partidos/${partidoActual.value.id_partido}/lineup`, { entries: [entry] })
-  const { data } = await api.get(`/partidos/${partidoActual.value.id_partido}/lineup`)
-  lineup.value = data
-  inp.id_jugador = ''
-  inp.posicion_juego = ''
-  inp.orden_bateo = lineupDelEquipo.length + 2
-}
-
 async function guardarResultado() {
+  if (resultadoForm.value.carreras_home === resultadoForm.value.carreras_visitantes) {
+    toast.warn('⚾ El béisbol no permite empates. Revisa las carreras antes de guardar.');
+    return;
+  }
   guardandoResultado.value = true
   try {
     await api.post(`/partidos/${partidoActual.value.id_partido}/resultado`, resultadoForm.value)
@@ -980,6 +940,7 @@ async function guardarResultado() {
     partidoActual.value.resultado = { ...resultadoForm.value }
     const idx = partidos.value.findIndex(p => p.id_partido === partidoActual.value.id_partido)
     if (idx >= 0) partidos.value[idx].estado = 'finalizado'
+    toast.success('Resultado sellado correctamente')
   } catch (e) {
     toast.error(e.response?.data?.error || 'Error al guardar resultado')
   } finally { guardandoResultado.value = false }
@@ -1014,14 +975,20 @@ async function guardarStatBateador(b) {
   if (b.hits > b.turnos_al_bate) {
     toast.warn('Los hits no pueden superar los turnos al bate'); return
   }
-  await api.post(`/partidos/${partidoActual.value.id_partido}/desempeno/bateador`, { ...b, id_partido: partidoActual.value.id_partido })
+  try {
+    await api.post(`/partidos/${partidoActual.value.id_partido}/desempeno/bateador`, { ...b, id_partido: partidoActual.value.id_partido })
+    toast.success('Estadística de bateador guardada')
+  } catch (error) { toast.error('Error al guardar estadística') }
 }
 
 async function guardarStatPitcher(pt) {
   if (pt.carreras_limpias > pt.carreras_permitidas) {
     toast.warn('Las carreras limpias no pueden superar las carreras permitidas'); return
   }
-  await api.post(`/partidos/${partidoActual.value.id_partido}/desempeno/pitcher`, { ...pt, id_partido: partidoActual.value.id_partido })
+  try {
+    await api.post(`/partidos/${partidoActual.value.id_partido}/desempeno/pitcher`, { ...pt, id_partido: partidoActual.value.id_partido })
+    toast.success('Estadística de pitcher guardada')
+  } catch (error) { toast.error('Error al guardar estadística') }
 }
 
 async function guardarTaquilla() {

@@ -5,7 +5,8 @@ function validarCedula(cedula) {
   const c = cedula.toUpperCase()
   if (!/^[VE]-\d{1,8}$/.test(c)) return 'Formato de cédula inválido. Use V-00000000 o E-00000000'
   const num = parseInt(c.split('-')[1], 10)
-  if (num < 1 || num > 34000000) return 'El número de cédula debe estar entre 1 y 34.000.000'
+  // Subimos el límite al máximo de 8 dígitos para evitar bloqueos con datos de prueba o cédulas extranjeras altas
+  if (num < 1 || num > 99999999) return 'El número de cédula debe estar entre 1 y 99.999.999'
   return null
 }
 
@@ -58,8 +59,9 @@ const JugadorController = {
       const jugadorActual = await JugadorModel.findById(id);
       if (!jugadorActual) return res.status(404).json({ error: 'Jugador no encontrado' });
 
+      // Un dueño solo puede editar o transferir si el jugador LE PERTENECE actualmente.
       if (rol === 'dueno' && jugadorActual.id_equipo !== id_equipo) {
-        return res.status(403).json({ error: 'No puedes editar jugadores de otros equipos' });
+        return res.status(403).json({ error: 'No puedes editar ni transferir jugadores de otros equipos' });
       }
 
       const err = validarCedula(req.body.cedula)
@@ -81,9 +83,10 @@ const JugadorController = {
     if (!jugador) return res.status(404).json({ error: 'Jugador no encontrado' });
 
     if (rol === 'dueno' && jugador.id_equipo !== id_equipo) {
-      return res.status(403).json({ error: 'No tienes permiso para eliminar este jugador' });
+      return res.status(403).json({ error: 'No tienes permiso para dar de baja a este jugador' });
     }
 
+    // Ahora invoca el Soft Delete (activo = 0)
     await JugadorModel.delete(id)
     res.json({ ok: true })
   },

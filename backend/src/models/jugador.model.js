@@ -25,6 +25,7 @@ const JugadorModel = {
     )
     return rows[0] || null
   },
+  
   async findByEquipo(id_equipo) {
     const [rows] = await db.query(
       'SELECT j.*, e.nombre_equipo FROM jugador j JOIN equipo e ON j.id_equipo = e.id_equipo WHERE j.id_equipo = ? ORDER BY apellido, nombre',
@@ -52,7 +53,8 @@ const JugadorModel = {
   },
 
   async delete(id) {
-    const [result] = await db.query('DELETE FROM jugador WHERE id_jugador = ?', [id])
+    // SOFT DELETE: En lugar de borrar de la base de datos, lo marcamos como inactivo (activo = 0)
+    const [result] = await db.query('UPDATE jugador SET activo = 0 WHERE id_jugador = ?', [id])
     return result.affectedRows
   },
 }

@@ -10,7 +10,6 @@
       </button>
     </div>
 
-    <!-- Tabla -->
     <div class="card">
       <div class="card-header d-flex align-items-center gap-2 flex-wrap">
         <div class="input-group input-group-sm" style="max-width:260px;">
@@ -36,7 +35,7 @@
               <th>Rol</th>
               <th>Brazo Dom.</th>
               <th>Estado</th>
-              <th v-if="auth.puedeEditar" style="width:100px;"></th>
+              <th v-if="auth.puedeEditar" style="width:130px;"></th>
             </tr>
           </thead>
           <tbody>
@@ -54,7 +53,6 @@
             <tr v-for="j in jugadoresPagina" :key="j.id_jugador">
               <td>
                 <div class="d-flex align-items-center gap-2">
-                  <!-- Avatar / Foto -->
                   <div style="position:relative; flex-shrink:0;">
                     <img v-if="j.foto_url" :src="apiBase + j.foto_url" :alt="j.nombre"
                       style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid #e2e8f0;" />
@@ -90,8 +88,9 @@
                 </span>
               </td>
               <td v-if="auth.puedeEditar" class="text-end">
-                <button class="btn btn-sm btn-ghost-primary me-1" @click="abrirFormulario(j)"><IconPencil :size="15" /></button>
-                <button class="btn btn-sm btn-ghost-danger" @click="confirmarEliminar(j)"><IconTrash :size="15" /></button>
+                <button class="btn btn-sm btn-ghost-primary me-1" title="Editar" @click="abrirFormulario(j)"><IconPencil :size="15" /></button>
+                <button class="btn btn-sm btn-ghost-success me-1" title="Transferir de Equipo" @click="abrirTransferencia(j)"><IconArrowsExchange :size="15" /></button>
+                <button class="btn btn-sm btn-ghost-danger" title="Dar de Baja" @click="confirmarEliminar(j)"><IconTrash :size="15" /></button>
               </td>
             </tr>
           </tbody>
@@ -99,7 +98,6 @@
       </div>
     </div>
 
-    <!-- Paginación -->
     <div v-if="totalPaginas > 1" class="d-flex align-items-center justify-content-between mt-3">
       <span class="text-muted" style="font-size:0.8rem;">
         Mostrando {{ (paginaActual - 1) * porPagina + 1 }}–{{ Math.min(paginaActual * porPagina, jugadoresFiltrados.length) }}
@@ -118,7 +116,6 @@
       </div>
     </div>
 
-    <!-- Modal -->
     <div v-if="modalAbierto" class="modal modal-blur show d-block" tabindex="-1">
       <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
@@ -214,6 +211,32 @@
       </div>
     </div>
     <div v-if="modalAbierto" class="modal-backdrop show"></div>
+
+    <div v-if="modalTransferir" class="modal modal-blur show d-block" tabindex="-1">
+      <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Transferir Jugador</h5>
+            <button type="button" class="btn-close" @click="modalTransferir = false"></button>
+          </div>
+          <div class="modal-body">
+            <p class="mb-3">Selecciona el equipo destino para <strong>{{ jugadorATransferir?.nombre }} {{ jugadorATransferir?.apellido }}</strong>:</p>
+            <select v-model="equipoDestino" class="form-select">
+              <option value="">— Equipo destino —</option>
+              <option v-for="eq in equipos.filter(e => e.id_equipo !== jugadorATransferir?.id_equipo)" :key="eq.id_equipo" :value="eq.id_equipo">
+                {{ eq.nombre_equipo }}
+              </option>
+            </select>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-ghost-secondary" @click="modalTransferir = false">Cancelar</button>
+            <button type="button" class="btn btn-success" :disabled="!equipoDestino" @click="ejecutarTransferencia">Confirmar Transferencia</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div v-if="modalTransferir" class="modal-backdrop show"></div>
+
   </div>
 </template>
 
@@ -223,7 +246,7 @@ import api from '@/services/api'
 import { useAuthStore } from '@/store/auth'
 import { useToast }   from '@/composables/useToast'
 import { useConfirm } from '@/composables/useConfirm'
-import { IconPlus, IconSearch, IconPencil, IconTrash, IconUsers, IconDeviceFloppy, IconCamera } from '@tabler/icons-vue'
+import { IconPlus, IconSearch, IconPencil, IconTrash, IconUsers, IconDeviceFloppy, IconCamera, IconArrowsExchange } from '@tabler/icons-vue'
 
 const apiBase = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3000'
 
@@ -240,6 +263,11 @@ const modalAbierto = ref(false)
 const editando   = ref(false)
 const guardando  = ref(false)
 const errorModal = ref('')
+
+// Estados de Transferencias
+const modalTransferir = ref(false)
+const jugadorATransferir = ref(null)
+const equipoDestino = ref('')
 
 const posicionesMap = {
   'P': 'Lanzador (P)',
@@ -302,6 +330,29 @@ function abrirFormulario(jugador = null) {
 
 function cerrarModal() { modalAbierto.value = false }
 
+// MÓDULO DE INTERFAZ PARA TRANSFERENCIAS
+function abrirTransferencia(jugador) {
+  jugadorATransferir.value = jugador;
+  equipoDestino.value = '';
+  modalTransferir.value = true;
+}
+
+async function ejecutarTransferencia() {
+  try {
+    const jugadorActualizado = { 
+      ...jugadorATransferir.value, 
+      id_equipo: equipoDestino.value, 
+      fecha_nacimiento: jugadorATransferir.value.fecha_nacimiento?.substring(0,10) 
+    };
+    await api.put(`/jugadores/${jugadorActualizado.id_jugador}`, jugadorActualizado);
+    // CORREGIDO: Usar la variable correcta sin la "r" final
+    toast.success(`¡${jugadorActualizado.nombre} fue transferido con éxito!`);
+    modalTransferir.value = false;
+    cargar();
+  } catch (error) {
+    toast.error(error.response?.data?.error || 'Error al procesar la transferencia del jugador');
+  }
+}
 async function guardar() {
   const nombre = (form.value.nombre || '').trim()
   const apellido = (form.value.apellido || '').trim()
@@ -347,6 +398,8 @@ async function subirFoto(jugador, event) {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
     jugador.foto_url = data.foto_url
+    toast.success('Foto de perfil actualizada correctamente');
+    cargar();
   } catch (e) {
     toast.error(e.response?.data?.error || 'Error al subir la foto')
   }
@@ -354,11 +407,26 @@ async function subirFoto(jugador, event) {
 }
 
 async function confirmarEliminar(j) {
-  const ok = await confirm.pedir(`¿Eliminar a "${j.nombre} ${j.apellido}"?`, { titulo: '¿Estás segura?', variante: 'danger' })
+  const ok = await confirm.pedir(`¿Estás segura de dar de baja a "${j.nombre} ${j.apellido}"? Sus estadísticas no se perderán, solo pasará a inactivo.`, { titulo: '¿Dar de baja?', variante: 'danger' })
   if (!ok) return
   await api.delete(`/jugadores/${j.id_jugador}`)
+  toast.success('Jugador dado de baja correctamente')
   cargar()
 }
 
 onMounted(cargar)
 </script>
+
+<style scoped>
+.team-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+</style>
