@@ -235,10 +235,6 @@
               </div>
 
               <div v-if="tabActual === 'lineup'">
-                <div v-if="partidoActual.estado === 'finalizado'" class="alert alert-danger py-2 mb-3" style="font-size:0.82rem;">
-                  <IconLock :size="15" class="me-1" /> El lineup está bloqueado permanentemente porque el partido ya finalizó.
-                </div>
-
                 <div class="row g-3">
                   <div class="col-md-6">
                     <div class="card p-3">
@@ -249,25 +245,50 @@
 
                       <div class="table-responsive">
                         <table class="table table-sm table-vcenter">
-                          <thead><tr style="font-size:0.72rem;"><th style="width: 55px;">#</th><th>Jugador</th><th style="width: 110px;">Posición</th><th style="width: 60px;">Titular</th></tr></thead>
+                          <thead>
+                            <tr style="font-size:0.72rem;">
+                              <th style="width: 55px;">#</th>
+                              <th>Jugador</th>
+                              <th style="width: 110px;">Posición</th>
+                              <th style="width: 60px;">Titular</th>
+                            </tr>
+                          </thead>
                           <tbody>
-                            <tr v-for="(jugador, idx) in lineupEquipo(partidoActual.id_equipo_casa)" :key="jugador.id_jugador">
+                            <tr v-for="(jugador, idx) in lineupEquipo(partidoActual.id_equipo_casa)" :key="jugador.id_jugador" :class="{'bg-success-lt': jugador.es_titular}">
                               <td>
-                                <span v-if="!editandoLineupLocal" class="fw-bold">{{ jugador.orden_bateo || (idx + 1) }}</span>
+                                <span v-if="!editandoLineupLocal" class="fw-bold">{{ jugador.orden_bateo || '—' }}</span>
                                 <input v-else type="number" min="1" max="20" v-model.number.lazy="jugador.orden_bateo" 
+                                  :disabled="!jugador.es_titular"
                                   @focus="jugador._viejoOrden = jugador.orden_bateo" @change="ajustarOrden(jugador, partidoActual.id_equipo_casa)" 
                                   style="width:55px;" class="form-control form-control-sm text-center" />
                               </td>
-                              <td class="fw-semibold">{{ jugador.nombre }} {{ jugador.apellido }}</td>
+                              <td class="fw-semibold">
+                                {{ jugador.nombre }} {{ jugador.apellido }}
+                                <span v-if="jugador.posicion_natural === 'P'" class="badge bg-purple-lt ms-1" style="font-size:0.65rem;">P</span>
+                              </td>
                               <td>
-                                <span v-if="!editandoLineupLocal" class="badge bg-primary-lt">{{ jugador.posicion_juego || jugador.posicion_natural || '—' }}</span>
-                                <select v-else v-model="jugador.posicion_juego" class="form-select form-select-sm">
-                                  <option value="">— Sin posición —</option><option value="P">P</option><option value="C">C</option><option value="1B">1B</option><option value="2B">2B</option><option value="3B">3B</option><option value="SS">SS</option><option value="LF">LF</option><option value="CF">CF</option><option value="RF">RF</option><option value="DH">DH</option>
+                                <span v-if="!editandoLineupLocal" class="badge" :class="jugador.posicion_juego === 'BN' ? 'bg-secondary-lt' : 'bg-primary-lt'">
+                                  {{ jugador.posicion_juego || 'BN' }}
+                                </span>
+                                <select v-else v-model="jugador.posicion_juego" class="form-select form-select-sm" @change="onPosicionChange(jugador)">
+                                  <option value="BN">Banca (BN)</option>
+                                  <option value="P">P</option>
+                                  <option value="C">C</option>
+                                  <option value="1B">1B</option>
+                                  <option value="2B">2B</option>
+                                  <option value="3B">3B</option>
+                                  <option value="SS">SS</option>
+                                  <option value="LF">LF</option>
+                                  <option value="CF">CF</option>
+                                  <option value="RF">RF</option>
+                                  <option value="DH">DH</option>
                                 </select>
                               </td>
                               <td class="text-center">
-                                <span v-if="!editandoLineupLocal"><span :class="jugador.es_titular ? 'text-success fw-bold' : 'text-muted'">{{ jugador.es_titular ? '✓' : '—' }}</span></span>
-                                <input v-else type="checkbox" v-model="jugador.es_titular" class="form-check-input" />
+                                <span v-if="!editandoLineupLocal">
+                                  <span :class="jugador.es_titular ? 'text-success fw-bold' : 'text-muted'">{{ jugador.es_titular ? '✓' : '—' }}</span>
+                                </span>
+                                <input v-else type="checkbox" v-model="jugador.es_titular" class="form-check-input" @change="onTitularChange(jugador)" />
                               </td>
                             </tr>
                           </tbody>
@@ -293,25 +314,53 @@
 
                       <div class="table-responsive">
                         <table class="table table-sm table-vcenter">
-                          <thead><tr style="font-size:0.72rem;"><th style="width: 55px;">#</th><th>Jugador</th><th style="width: 110px;">Posición</th><th style="width: 60px;">Titular</th></tr></thead>
+                          <thead>
+                            <tr style="font-size:0.72rem;">
+                              <th style="width: 55px;">#</th>
+                              <th>Jugador</th>
+                              <th style="width: 110px;">Posición</th>
+                              <th style="width: 60px;">Titular</th>
+                            </tr>
+                          </thead>
                           <tbody>
-                            <tr v-for="(jugador, idx) in lineupEquipo(partidoActual.id_equipo_visitante)" :key="jugador.id_jugador">
+                            <tr v-for="(jugador, idx) in lineupEquipo(partidoActual.id_equipo_visitante)" :key="jugador.id_jugador" :class="{'bg-success-lt': jugador.es_titular}">
                               <td>
-                                <span v-if="!editandoLineupVisitante" class="fw-bold">{{ jugador.orden_bateo || (idx + 1) }}</span>
+                                <span v-if="!editandoLineupVisitante" class="fw-bold">{{ jugador.orden_bateo || '—' }}</span>
                                 <input v-else type="number" min="1" max="20" v-model.number.lazy="jugador.orden_bateo" 
+                                  :disabled="!jugador.es_titular"
                                   @focus="jugador._viejoOrden = jugador.orden_bateo" @change="ajustarOrden(jugador, partidoActual.id_equipo_visitante)" 
                                   style="width:55px;" class="form-control form-control-sm text-center" />
                               </td>
-                              <td class="fw-semibold">{{ jugador.nombre }} {{ jugador.apellido }}</td>
+                              <td class="fw-semibold">
+                                {{ jugador.nombre }} {{ jugador.apellido }}
+                                <span v-if="jugador.posicion_natural === 'P'" class="badge bg-purple-lt ms-1" style="font-size:0.65rem;">P</span>
+                              </td>
                               <td>
-                                <span v-if="!editandoLineupVisitante" class="badge bg-primary-lt">{{ jugador.posicion_juego || jugador.posicion_natural || '—' }}</span>
-                                <select v-else v-model="jugador.posicion_juego" class="form-select form-select-sm">
-                                  <option value="">— Sin posición —</option><option value="P">P</option><option value="C">C</option><option value="1B">1B</option><option value="2B">2B</option><option value="3B">3B</option><option value="SS">SS</option><option value="LF">LF</option><option value="CF">CF</option><option value="RF">RF</option><option value="DH">DH</option>
+                                <span v-if="!editandoLineupVisitante" class="badge" :class="jugador.posicion_juego === 'BN' ? 'bg-secondary-lt' : 'bg-primary-lt'">
+                                  {{ jugador.posicion_juego || 'BN' }}
+                                </span>
+                                <select v-else v-model="jugador.posicion_juego" class="form-select form-select-sm" @change="onPosicionChange(jugador)">
+                                  <option value="BN">Banca (BN)</option>
+                                  <option value="RP">Relevista (RP)</option>
+                                  <option value="PH">Bat. Emergente (PH)</option>
+                                  <option value="PR">Corr. Emergente (PR)</option>
+                                  <option value="P">P</option>
+                                  <option value="C">C</option>
+                                  <option value="1B">1B</option>
+                                  <option value="2B">2B</option>
+                                  <option value="3B">3B</option>
+                                  <option value="SS">SS</option>
+                                  <option value="LF">LF</option>
+                                  <option value="CF">CF</option>
+                                  <option value="RF">RF</option>
+                                  <option value="DH">DH</option>
                                 </select>
                               </td>
                               <td class="text-center">
-                                <span v-if="!editandoLineupVisitante"><span :class="jugador.es_titular ? 'text-success fw-bold' : 'text-muted'">{{ jugador.es_titular ? '✓' : '—' }}</span></span>
-                                <input v-else type="checkbox" v-model="jugador.es_titular" class="form-check-input" />
+                                <span v-if="!editandoLineupVisitante">
+                                  <span :class="jugador.es_titular ? 'text-success fw-bold' : 'text-muted'">{{ jugador.es_titular ? '✓' : '—' }}</span>
+                                </span>
+                                <input v-else type="checkbox" v-model="jugador.es_titular" class="form-check-input" @change="onTitularChange(jugador)" />
                               </td>
                             </tr>
                           </tbody>
@@ -328,7 +377,7 @@
                     </div>
                   </div>
                 </div>
-              </div>
+              </div>  
 
               <div v-if="tabActual === 'resultado'">
                 <div v-if="!esAnotadorOrAdmin" class="alert alert-warning py-2 mb-3" style="font-size:0.82rem;">
@@ -398,24 +447,51 @@
                   <IconAlertTriangle :size="15" class="me-1" /> Han pasado más de 24h desde el fin del encuentro. Cualquier corrección dejará un registro de auditoría.
                 </div>
 
+                <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                  <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-sm" :class="equipoStatsSeleccionado === 'local' ? 'btn-primary' : 'btn-outline-primary'" @click="equipoStatsSeleccionado = 'local'">
+                      Local: {{ partidoActual.equipo_casa }}
+                    </button>
+                    <button type="button" class="btn btn-sm" :class="equipoStatsSeleccionado === 'visitante' ? 'btn-primary' : 'btn-outline-primary'" @click="equipoStatsSeleccionado = 'visitante'">
+                      Visitante: {{ partidoActual.equipo_visitante }}
+                    </button>
+                  </div>
+                  <button v-if="esAnotadorOrAdmin && partidoYaComenzo" class="btn btn-sm btn-info d-flex align-items-center gap-1" @click="sincronizarResultadoDesdeStats" title="Suma las carreras y hits de ambos equipos y los pasa al Resultado">
+                    <IconChartBar :size="14" /> Sincronizar al Resultado
+                  </button>
+                </div>
+
                 <div class="mb-4">
-                  <h6 class="fw-bold mb-3" style="font-size:0.875rem;">Bateadores</h6>
+                  <h6 class="fw-bold mb-3" style="font-size:0.875rem;">Bateadores ({{ equipoStatsSeleccionado === 'local' ? partidoActual.equipo_casa : partidoActual.equipo_visitante }})</h6>
                   <div class="table-responsive">
                     <table class="table table-sm table-vcenter">
                       <thead>
-                        <tr><th>Jugador</th><th><AbrevTooltip ab="AB" /></th><th><AbrevTooltip ab="H" /></th><th><AbrevTooltip ab="HR" /></th><th v-if="esAnotadorOrAdmin && partidoYaComenzo">Acción</th></tr>
+                        <tr style="font-size: 0.75rem;">
+                          <th>Jugador</th>
+                          <th><AbrevTooltip ab="AB" /></th>
+                          <th><AbrevTooltip ab="C" /></th>
+                          <th><AbrevTooltip ab="H" /></th>
+                          <th><AbrevTooltip ab="HR" /></th>
+                          <th><AbrevTooltip ab="CI" /></th>
+                          <th v-if="esAnotadorOrAdmin && partidoYaComenzo">Acción</th>
+                        </tr>
                       </thead>
                       <tbody>
-                        <tr v-for="b in desempeno.bateadores" :key="b.id_jugador">
-                          <td class="fw-semibold">{{ b.nombre }} {{ b.apellido }}</td>
+                        <tr v-if="!statsVisibles.bateadores.length">
+                          <td colspan="7" class="text-center text-muted py-3">No hay bateadores registrados para este equipo. Verifica el Lineup.</td>
+                        </tr>
+                        <tr v-for="b in statsVisibles.bateadores" :key="b.id_jugador">
+                          <td class="fw-semibold" style="font-size:0.8rem;">{{ b.nombre }} {{ b.apellido }}</td>
                           <template v-if="esAnotadorOrAdmin && partidoYaComenzo">
-                            <td><input type="number" min="0" class="form-control form-control-sm text-center" style="width:50px;" v-model.number="b.turnos_al_bate" /></td>
-                            <td><input type="number" min="0" class="form-control form-control-sm text-center" style="width:50px;" v-model.number="b.hits" /></td>
-                            <td><input type="number" min="0" class="form-control form-control-sm text-center" style="width:50px;" v-model.number="b.jonrones" /></td>
-                            <td><button class="btn btn-xs btn-ghost-primary" @click="guardarStatBateador(b)"><IconDeviceFloppy :size="13" /></button></td>
+                            <td><input type="number" min="0" class="form-control form-control-sm text-center px-1" style="width:45px;" v-model.number="b.turnos_al_bate" /></td>
+                            <td><input type="number" min="0" class="form-control form-control-sm text-center px-1 bg-blue-lt" style="width:45px;" v-model.number="b.carreras" /></td>
+                            <td><input type="number" min="0" class="form-control form-control-sm text-center px-1 bg-blue-lt" style="width:45px;" v-model.number="b.hits" /></td>
+                            <td><input type="number" min="0" class="form-control form-control-sm text-center px-1" style="width:45px;" v-model.number="b.jonrones" /></td>
+                            <td><input type="number" min="0" class="form-control form-control-sm text-center px-1" style="width:45px;" v-model.number="b.carreras_impulsadas" /></td>
+                            <td><button class="btn btn-xs btn-ghost-primary" @click="guardarStatBateador(b)"><IconDeviceFloppy :size="14" /></button></td>
                           </template>
                           <template v-else>
-                            <td class="text-center">{{ b.turnos_al_bate }}</td><td class="text-center">{{ b.hits }}</td><td class="text-center">{{ b.jonrones }}</td>
+                            <td class="text-center">{{ b.turnos_al_bate }}</td><td class="text-center">{{ b.carreras }}</td><td class="text-center">{{ b.hits }}</td><td class="text-center">{{ b.jonrones }}</td><td class="text-center">{{ b.carreras_impulsadas }}</td>
                           </template>
                         </tr>
                       </tbody>
@@ -424,23 +500,34 @@
                 </div>
 
                 <div>
-                  <h6 class="fw-bold mb-3" style="font-size:0.875rem;">Pitchers</h6>
+                  <h6 class="fw-bold mb-3" style="font-size:0.875rem;">Pitchers ({{ equipoStatsSeleccionado === 'local' ? partidoActual.equipo_casa : partidoActual.equipo_visitante }})</h6>
                   <div class="table-responsive">
                     <table class="table table-sm table-vcenter">
                       <thead>
-                        <tr><th>Jugador</th><th><AbrevTooltip ab="IP" /></th><th><AbrevTooltip ab="H" /></th><th><AbrevTooltip ab="SO" /></th><th v-if="esAnotadorOrAdmin && partidoYaComenzo">Acción</th></tr>
+                        <tr style="font-size: 0.75rem;">
+                          <th>Jugador</th>
+                          <th><AbrevTooltip ab="IP" /></th>
+                          <th><AbrevTooltip ab="H" /></th>
+                          <th><AbrevTooltip ab="CP" /></th>
+                          <th><AbrevTooltip ab="SO" /></th>
+                          <th v-if="esAnotadorOrAdmin && partidoYaComenzo">Acción</th>
+                        </tr>
                       </thead>
                       <tbody>
-                        <tr v-for="pt in desempeno.pitchers" :key="pt.id_jugador">
-                          <td class="fw-semibold">{{ pt.nombre }} {{ pt.apellido }}</td>
+                        <tr v-if="!statsVisibles.pitchers.length">
+                          <td colspan="6" class="text-center text-muted py-3">No hay pitchers registrados para este equipo. Verifica el Lineup.</td>
+                        </tr>
+                        <tr v-for="pt in statsVisibles.pitchers" :key="pt.id_jugador">
+                          <td class="fw-semibold" style="font-size:0.8rem;">{{ pt.nombre }} {{ pt.apellido }}</td>
                           <template v-if="esAnotadorOrAdmin && partidoYaComenzo">
-                            <td><input type="number" min="0" step="0.1" class="form-control form-control-sm text-center" style="width:55px;" v-model.number="pt.innings_pitcheados" /></td>
-                            <td><input type="number" min="0" class="form-control form-control-sm text-center" style="width:50px;" v-model.number="pt.hits_permitidos" /></td>
-                            <td><input type="number" min="0" class="form-control form-control-sm text-center" style="width:50px;" v-model.number="pt.ponches" /></td>
-                            <td><button class="btn btn-xs btn-ghost-primary" @click="guardarStatPitcher(pt)"><IconDeviceFloppy :size="13" /></button></td>
+                            <td><input type="number" min="0" step="0.1" class="form-control form-control-sm text-center px-1" style="width:55px;" v-model.number="pt.innings_pitcheados" /></td>
+                            <td><input type="number" min="0" class="form-control form-control-sm text-center px-1" style="width:50px;" v-model.number="pt.hits_permitidos" /></td>
+                            <td><input type="number" min="0" class="form-control form-control-sm text-center px-1" style="width:50px;" v-model.number="pt.carreras_permitidas" /></td>
+                            <td><input type="number" min="0" class="form-control form-control-sm text-center px-1" style="width:50px;" v-model.number="pt.ponches" /></td>
+                            <td><button class="btn btn-xs btn-ghost-primary" @click="guardarStatPitcher(pt)"><IconDeviceFloppy :size="14" /></button></td>
                           </template>
                           <template v-else>
-                            <td class="text-center">{{ pt.innings_pitcheados }}</td><td class="text-center">{{ pt.hits_permitidos }}</td><td class="text-center">{{ pt.ponches }}</td>
+                            <td class="text-center">{{ pt.innings_pitcheados }}</td><td class="text-center">{{ pt.hits_permitidos }}</td><td class="text-center">{{ pt.carreras_permitidas }}</td><td class="text-center">{{ pt.ponches }}</td>
                           </template>
                         </tr>
                       </tbody>
@@ -574,7 +661,27 @@ const editandoLineupVisitante = ref(false)
 const guardandoLineup = ref(false)
 const nuevoBateador = ref('')
 const nuevoPitcher  = ref('')
+const equipoStatsSeleccionado = ref('local')
 
+const statsLocal = computed(() => {
+  if (!partidoActual.value) return { bateadores: [], pitchers: [] }
+  return {
+    bateadores: desempeno.value.bateadores.filter(b => b.id_equipo === partidoActual.value.id_equipo_casa),
+    pitchers: desempeno.value.pitchers.filter(p => p.id_equipo === partidoActual.value.id_equipo_casa)
+  }
+})
+
+const statsVisitante = computed(() => {
+  if (!partidoActual.value) return { bateadores: [], pitchers: [] }
+  return {
+    bateadores: desempeno.value.bateadores.filter(b => b.id_equipo === partidoActual.value.id_equipo_visitante),
+    pitchers: desempeno.value.pitchers.filter(p => p.id_equipo === partidoActual.value.id_equipo_visitante)
+  }
+})
+
+const statsVisibles = computed(() => {
+  return equipoStatsSeleccionado.value === 'local' ? statsLocal.value : statsVisitante.value
+})
 // Taquilla
 const taquillaForm = ref({ boletos_general: 0, precio_general: 0, boletos_vip: 0, precio_vip: 0, capacidad_estadio: 0 })
 const guardandoTaquilla = ref(false)
@@ -736,6 +843,8 @@ function ajustarOrden(jugadorModificado, id_equipo) {
   reindexarLineup(id_equipo);
 }
 
+
+
 function reindexarLineup(id_equipo) {
   const equipoLineup = lineup.value.filter(j => j.id_equipo === id_equipo);
   const ordenados = equipoLineup
@@ -745,43 +854,54 @@ function reindexarLineup(id_equipo) {
   ordenados.forEach((j, idx) => { j.orden_bateo = idx + 1; });
 }
 
-async function guardarLineupCompleto(id_equipo, tipo) {
+async function guardarLineupCompleto(idEquipo, tipo) {
+  // 1. Obtenemos los peloteros pertenecientes al equipo que se está guardando
+  const jugadores = lineupEquipo(idEquipo);
+
+  // 2. Filtramos los que actúan en el terreno (Titulares activos que no sean BN)
+  const titulares = jugadores.filter(j => j.es_titular && j.posicion_juego !== 'BN');
+
+  // REGLA 1: Validación estricta del Pitcher abridor único
+  const pitchersAbridores = titulares.filter(j => j.posicion_juego === 'P');
+  if (pitchersAbridores.length > 1) {
+    toast.error(`Regla de Béisbol Rota: Solo puede haber 1 Lanzador (P) abridor en el terreno. Por favor, pasa los lanzadores relevistas a la 'Banca (BN)'.`);
+    return; // Cancela el envío de información
+  }
+
+  // REGLA 2: No duplicar posiciones defensivas en el terreno de juego
+  const posicionesOcupadas = new Set();
+  for (const j of titulares) {
+    if (posicionesOcupadas.has(j.posicion_juego)) {
+      toast.error(`Conflicto de Posición: La posición defensiva '${j.posicion_juego}' ya está asignada a otro jugador titular.`);
+      return; // Cancela el envío de información
+    }
+    posicionesOcupadas.add(j.posicion_juego);
+  }
+
+  // 3. Mapeo y saneamiento de datos seguro antes de enviar al servidor
+  const entries = jugadores.map(j => ({
+    id_partido: partidoActual.value.id_partido,
+    id_jugador: j.id_jugador,
+    id_equipo: idEquipo,
+    orden_bateo: j.es_titular ? (j.orden_bateo || null) : null,
+    posicion_juego: j.posicion_juego || 'BN', // Garantiza 'BN' en vez de cadenas vacías
+    es_titular: j.es_titular ? 1 : 0
+  }));
+
   guardandoLineup.value = true;
   try {
-    const jugadoresAguardar = lineup.value.filter(l => l.id_equipo === id_equipo && (l.posicion_juego || l.orden_bateo));
-
-    const posiciones = jugadoresAguardar.map(j => j.posicion_juego).filter(p => p && p.trim() !== '');
-    if (new Set(posiciones).size !== posiciones.length) {
-      toast.warn('❌ No puedes tener dos jugadores con la misma posición defensiva.');
-      guardandoLineup.value = false;
-      return;
-    }
-
-    const ordenes = jugadoresAguardar.map(j => j.orden_bateo).filter(o => o);
-    if (new Set(ordenes).size !== ordenes.length) {
-      toast.warn('❌ Hay números de orden al bate repetidos.');
-      guardandoLineup.value = false;
-      return;
-    }
-
-    const entries = jugadoresAguardar.map(j => ({
-      id_jugador: j.id_jugador,
-      id_equipo: id_equipo,
-      orden_bateo: j.orden_bateo || null,
-      posicion_juego: j.posicion_juego,
-      es_titular: j.es_titular ? 1 : 0
-    }));
-
+    // Se envía el lote correspondiente al backend
     await api.post(`/partidos/${partidoActual.value.id_partido}/lineup`, { entries });
-    toast.success('✅ Lineup guardado correctamente');
-
+    toast.success(`⚾ ¡Lineup ${tipo === 'local' ? 'Local' : 'Visitante'} guardado y validado con éxito!`);
+    
+    // Cerramos el modo edición de la columna correspondiente
     if (tipo === 'local') editandoLineupLocal.value = false;
-    if (tipo === 'visitante') editandoLineupVisitante.value = false;
-
-    const { data } = await api.get(`/partidos/${partidoActual.value.id_partido}/lineup`);
-    lineup.value = data;
+    else editandoLineupVisitante.value = false;
+    
+    // Refrescamos los datos generales de la vista
+    await verDetalle(partidoActual.value);
   } catch (e) {
-    toast.error(e.response?.data?.error || 'Error al guardar lineup');
+    toast.error(e.response?.data?.error || 'Ocurrió un error al guardar la alineación.');
   } finally {
     guardandoLineup.value = false;
   }
@@ -928,6 +1048,27 @@ async function reprogramarPartido() {
   }
 }
 
+function sincronizarResultadoDesdeStats() {
+  let carrerasL = 0, hitsL = 0;
+  statsLocal.value.bateadores.forEach(b => { 
+    carrerasL += (b.carreras || 0); 
+    hitsL += (b.hits || 0); 
+  });
+
+  let carrerasV = 0, hitsV = 0;
+  statsVisitante.value.bateadores.forEach(b => { 
+    carrerasV += (b.carreras || 0); 
+    hitsV += (b.hits || 0); 
+  });
+
+  resultadoForm.value.carreras_home = carrerasL;
+  resultadoForm.value.hits_home = hitsL;
+  resultadoForm.value.carreras_visitantes = carrerasV;
+  resultadoForm.value.hits_visitantes = hitsV;
+
+  toast.success('📊 Carreras y Hits sincronizados desde las estadísticas.');
+}
+
 async function guardarResultado() {
   if (resultadoForm.value.carreras_home === resultadoForm.value.carreras_visitantes) {
     toast.warn('⚾ El béisbol no permite empates. Revisa las carreras antes de guardar.');
@@ -971,24 +1112,73 @@ function agregarPitcher() {
   nuevoPitcher.value = ''
 }
 
-async function guardarStatBateador(b) {
-  if (b.hits > b.turnos_al_bate) {
-    toast.warn('Los hits no pueden superar los turnos al bate'); return
+function onTitularChange(jugador) {
+  if (!jugador.es_titular) {
+    // Si se quita de titular, pasa inmediatamente a la Banca y pierde el turno de bateo
+    jugador.posicion_juego = 'BN';
+    jugador.orden_bateo = null;
+  } else {
+    // Si se activa como titular, se le pre-asigna su posición natural (si no es BN)
+    if (jugador.posicion_juego === 'BN' || !jugador.posicion_juego) {
+      jugador.posicion_juego = jugador.posicion_natural && jugador.posicion_natural !== 'BN' 
+        ? jugador.posicion_natural 
+        : 'DH'; // Por defecto Designado si no hay otra opción
+    }
   }
+}
+
+function onPosicionChange(jugador) {
+  if (jugador.posicion_juego === 'BN') {
+    // Si el anotador elige "Banca (BN)" en el select, desmarcamos el estado titular
+    jugador.es_titular = false;
+    jugador.orden_bateo = null;
+  } else {
+    // Cualquier otra posición real en el campo lo convierte automáticamente en titular
+    jugador.es_titular = true;
+  }
+}
+
+
+
+async function guardarStatBateador(b) {
+  // --- REGLAS INTELIGENTES DE BÉISBOL ---
+  
+  // 1. Un Jonrón (HR) cuenta obligatoriamente como Hit, Carrera y Carrera Impulsada
+  if (b.jonrones > 0) {
+    if (b.hits < b.jonrones) b.hits = b.jonrones;
+    if (b.carreras < b.jonrones) b.carreras = b.jonrones;
+    if (b.carreras_impulsadas < b.jonrones) b.carreras_impulsadas = b.jonrones;
+  }
+
+  // 2. Validación lógica
+  if (b.hits > b.turnos_al_bate) {
+    toast.warn('Matemática incorrecta: Los Hits no pueden superar los Turnos al Bate (AB)'); 
+    return;
+  }
+
   try {
     await api.post(`/partidos/${partidoActual.value.id_partido}/desempeno/bateador`, { ...b, id_partido: partidoActual.value.id_partido })
     toast.success('Estadística de bateador guardada')
-  } catch (error) { toast.error('Error al guardar estadística') }
+  } catch (error) { 
+    toast.error('Error al guardar estadística') 
+  }
 }
 
 async function guardarStatPitcher(pt) {
+  // --- REGLAS INTELIGENTES DE BÉISBOL ---
+  
+  // Toda Carrera Limpia (CP/ER) es por definición una Carrera Permitida. 
+  // Si el anotador pone más limpias que permitidas, el sistema lo auto-corrige hacia arriba.
   if (pt.carreras_limpias > pt.carreras_permitidas) {
-    toast.warn('Las carreras limpias no pueden superar las carreras permitidas'); return
+    pt.carreras_permitidas = pt.carreras_limpias;
   }
+
   try {
     await api.post(`/partidos/${partidoActual.value.id_partido}/desempeno/pitcher`, { ...pt, id_partido: partidoActual.value.id_partido })
     toast.success('Estadística de pitcher guardada')
-  } catch (error) { toast.error('Error al guardar estadística') }
+  } catch (error) { 
+    toast.error('Error al guardar estadística') 
+  }
 }
 
 async function guardarTaquilla() {

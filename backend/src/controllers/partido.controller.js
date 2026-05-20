@@ -222,9 +222,9 @@ const PartidoController = {
       if (trampa) return res.status(403).json({ error: 'ALERTA: Solo puedes modificar jugadores que pertenezcan a tu equipo.' });
     }
 
-    const posiciones = entries.map(e => e.posicion_juego).filter(p => p && p.trim() !== '');
-    if (new Set(posiciones).size !== posiciones.length) return res.status(400).json({ error: 'Posiciones defensivas repetidas.' });
-
+    const posiciones = entries.map(e => e.posicion_juego).filter(p => p && p.trim() !== '' && !['BN', 'RP', 'PH', 'PR'].includes(p));
+    if (new Set(posiciones).size !== posiciones.length) return res.status(400).json({ error: 'Posiciones defensivas repetidas en el terreno de juego.' });
+    
     const ordenes = entries.map(e => e.orden_bateo).filter(o => o && o > 0);
     if (new Set(ordenes).size !== ordenes.length) return res.status(400).json({ error: 'Números de orden al bate duplicados.' });
 
