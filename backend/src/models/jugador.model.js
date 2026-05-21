@@ -57,6 +57,37 @@ const JugadorModel = {
     const [result] = await db.query('UPDATE jugador SET activo = 0 WHERE id_jugador = ?', [id])
     return result.affectedRows
   },
+
+  async solicitarTransferencia(id_jugador, id_equipo_origen, id_equipo_destino) {
+    const [result] = await db.query(
+      `INSERT INTO transferencia (id_jugador, id_equipo_origen, id_equipo_destino) VALUES (?, ?, ?)`,
+      [id_jugador, id_equipo_origen, id_equipo_destino]
+    )
+    return result.insertId
+  },
+
+  async getTransferenciasPendientes(id_equipo_destino) {
+    const [rows] = await db.query(
+      `SELECT t.*, j.nombre as jugador_nombre, j.apellido as jugador_apellido, e.nombre_equipo as equipo_origen_nombre
+       FROM transferencia t
+       JOIN jugador j ON t.id_jugador = j.id_jugador
+       JOIN equipo e ON t.id_equipo_origen = e.id_equipo
+       WHERE t.id_equipo_destino = ? AND t.estado = 'pendiente'`,
+      [id_equipo_destino]
+    )
+    return rows
+  },
+
+  async resolverTransferencia(id_transferencia, estado, id_jugador, id_equipo_destino) {
+
+    await db.query(`UPDATE transferencia SET estado = ? WHERE id_transferencia = ?`, [estado, id_transferencia]);
+    
+
+    if (estado === 'aceptada') {
+      await db.query(`UPDATE jugador SET id_equipo = ? WHERE id_jugador = ?`, [id_equipo_destino, id_jugador]);
+    }
+    return true;
+  }
 }
 
 module.exports = JugadorModel

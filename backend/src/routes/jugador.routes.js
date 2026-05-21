@@ -7,12 +7,19 @@ const { soloRoles }    = require('../middlewares/roles')
 const upload           = require('../middlewares/upload')
 const db               = require('../config/database')
 
+router.get('/transferencias/pendientes', verificarToken, soloRoles('dueno'), JugadorController.obtenerPendientes)
+router.post('/transferencias/resolver', verificarToken, soloRoles('dueno'), JugadorController.resolverTransferencia)
+
+
 router.get('/',    verificarToken, JugadorController.listar)
 router.get('/:id', verificarToken, JugadorController.obtener)
 
 router.post('/',      verificarToken, soloRoles('administrador', 'dueno'), JugadorController.crear)
 router.put('/:id',    verificarToken, soloRoles('administrador', 'dueno'), JugadorController.actualizar)
 router.delete('/:id', verificarToken, soloRoles('administrador', 'dueno'), JugadorController.eliminar)
+
+// ── SOLICITAR TRANSFERENCIA DE UN JUGADOR ─────────────────────────────
+router.post('/:id/transferir', verificarToken, soloRoles('dueno'), JugadorController.solicitarTransferencia)
 
 // ── Foto del jugador ──────────────────────────────────────────
 router.post('/:id/foto',

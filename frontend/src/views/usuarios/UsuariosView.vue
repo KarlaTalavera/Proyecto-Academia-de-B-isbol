@@ -126,47 +126,47 @@
             <h5 class="modal-title">Nuevo Usuario</h5>
             <button type="button" class="btn-close" @click="modalCrear = false"></button>
           </div>
-          <form @submit.prevent="crearUsuario">
-            <div class="modal-body">
-              <div v-if="errorCrear" class="alert alert-danger py-2 mb-3">{{ errorCrear }}</div>
-              <div class="mb-3">
-                <label class="form-label required">Nombre completo</label>
-                <input v-model="crearForm.nombre" class="form-control" placeholder="Nombre del usuario" required />
-              </div>
-              <div class="mb-3">
-                <label class="form-label required">Correo electrónico</label>
-                <input v-model="crearForm.email" type="email" class="form-control" placeholder="correo@ejemplo.com" required />
-              </div>
-              <div class="row">
-                <div class="col-md-6 mb-3">
-                  <label class="form-label required">Contraseña</label>
-                  <input v-model="crearForm.password" type="password" class="form-control" placeholder="Mínimo 6 caracteres" required />
-                </div>
-                <div class="col-md-6 mb-3">
-                  <label class="form-label required">Rol</label>
-                  <select v-model="crearForm.rol" class="form-select" required>
-                    <option value="">— Seleccionar —</option>
-                    <option v-for="r in rolesDisponibles" :key="r.value" :value="r.value">{{ r.label }}</option>
-                  </select>
-                </div>
-                <div class="mb-3" v-if="crearForm.rol === 'dueno' || crearForm.rol === 'anotador'">
-                  <label class="form-label required">Asignar Equipo</label>
-                  <select v-model="crearForm.id_equipo" class="form-select" :required="crearForm.rol === 'dueno' || crearForm.rol === 'anotador'">
-                    <option value="">— Seleccionar Equipo —</option>
-                    <option v-for="eq in equiposDisponibles" :key="eq.id_equipo" :value="eq.id_equipo">
-                      {{ eq.nombre_equipo }}
-                    </option>
-                  </select>
-                </div>
-              </div>
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-ghost-secondary me-auto" @click="modalCrear = false">Cancelar</button>
-              <button type="submit" class="btn btn-primary" :disabled="guardando">
-                {{ guardando ? 'Creando...' : 'Crear Usuario' }}
-              </button>
-            </div>
-          </form>
+         <form @submit.prevent="crearUsuario">
+  <div class="modal-body">
+    <div v-if="errorCrear" class="alert alert-danger py-2 mb-3">{{ errorCrear }}</div>
+    <div class="mb-3">
+      <label class="form-label required">Nombre completo</label>
+      <input v-model="crearForm.nombre" class="form-control" placeholder="Nombre del usuario" required />
+    </div>
+    <div class="mb-3">
+      <label class="form-label required">Correo electrónico</label>
+      <input v-model="crearForm.email" type="email" class="form-control" placeholder="correo@ejemplo.com" required />
+    </div>
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <label class="form-label required">Contraseña</label>
+        <input v-model="crearForm.password" type="password" class="form-control" placeholder="Mínimo 6 caracteres" required />
+      </div>
+      <div class="col-md-6 mb-3">
+        <label class="form-label required">Rol</label>
+        <select v-model="crearForm.rol" class="form-select" required>
+          <option value="">— Seleccionar —</option>
+          <option v-for="r in rolesDisponibles" :key="r.value" :value="r.value">{{ r.label }}</option>
+        </select>
+      </div>
+    </div>
+    <div class="mb-3" v-if="crearForm.rol === 'dueno' || crearForm.rol === 'anotador'">
+      <label class="form-label required">Equipo</label>
+      <select v-model="crearForm.id_equipo" class="form-select" required>
+        <option value="">— Seleccionar Equipo —</option>
+        <option v-for="eq in equiposDisponibles" :key="eq.id_equipo" :value="eq.id_equipo">
+          {{ eq.nombre_equipo }}
+        </option>
+      </select>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button type="button" class="btn btn-ghost-secondary me-auto" @click="modalCrear = false">Cancelar</button>
+    <button type="submit" class="btn btn-primary" :disabled="guardando">
+      {{ guardando ? 'Creando...' : 'Crear Usuario' }}
+    </button>
+  </div>
+</form>
         </div>
       </div>
     </div>

@@ -2,15 +2,10 @@ const EquipoModel = require('../models/equipo.model')
 
 const EquipoController = {
   async listar(req, res) {
-    try {
-      // Quitamos el "if (rol === 'dueno')" para que el dueño reciba la lista completa
-      // de equipos que necesita usar en el modal de transferencias.
-      const equipos = await EquipoModel.findAll()
-      res.json(equipos)
-    } catch (e) {
-      console.error('Error listando equipos:', e)
-      res.status(500).json({ error: 'Error interno del servidor' })
-    }
+    // Quitamos la restricción del rol 'dueno' para que puedan descargar 
+    // todos los equipos y así el modal de transferencias se pueda llenar.
+    const equipos = await EquipoModel.findAll()
+    res.json(equipos)
   },
 
   async obtener(req, res) {
@@ -43,7 +38,7 @@ const EquipoController = {
     const affected = await EquipoModel.delete(req.params.id)
     if (!affected) return res.status(404).json({ error: 'Equipo no encontrado' })
     res.json({ ok: true })
-  },
+  }
 }
 
 module.exports = EquipoController
