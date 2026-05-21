@@ -59,8 +59,8 @@ const JugadorController = {
       const jugadorActual = await JugadorModel.findById(id);
       if (!jugadorActual) return res.status(404).json({ error: 'Jugador no encontrado' });
 
-      // Un dueño solo puede editar o transferir si el jugador LE PERTENECE actualmente.
-      if (rol === 'dueno' && jugadorActual.id_equipo !== id_equipo) {
+      datos
+      if (rol === 'dueno' && Number(jugadorActual.id_equipo) !== Number(id_equipo)) {
         return res.status(403).json({ error: 'No puedes editar ni transferir jugadores de otros equipos' });
       }
 
@@ -80,11 +80,12 @@ const JugadorController = {
     const { id } = req.params;
 
     const jugador = await JugadorModel.findById(id);
-    if (!jugador) return res.status(404).json({ error: 'Jugador no encontrado' });
+if (!jugador) return res.status(404).json({ error: 'Jugador no encontrado' });
 
-    if (rol === 'dueno' && jugador.id_equipo !== id_equipo) {
-      return res.status(403).json({ error: 'No tienes permiso para dar de baja a este jugador' });
-    }
+
+if (rol === 'dueno' && Number(jugador.id_equipo) !== Number(id_equipo)) {
+  return res.status(403).json({ error: 'No tienes permiso para dar de baja a este jugador' });
+}
 
     // Ahora invoca el Soft Delete (activo = 0)
     await JugadorModel.delete(id)

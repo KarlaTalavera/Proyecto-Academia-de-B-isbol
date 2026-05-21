@@ -220,13 +220,19 @@
             <button type="button" class="btn-close" @click="modalTransferir = false"></button>
           </div>
           <div class="modal-body">
-            <p class="mb-3">Selecciona el equipo destino para <strong>{{ jugadorATransferir?.nombre }} {{ jugadorATransferir?.apellido }}</strong>:</p>
-            <select v-model="equipoDestino" class="form-select">
-              <option value="">— Equipo destino —</option>
-              <option v-for="eq in equipos.filter(e => e.id_equipo !== jugadorATransferir?.id_equipo)" :key="eq.id_equipo" :value="eq.id_equipo">
-                {{ eq.nombre_equipo }}
-              </option>
-            </select>
+            <div v-if="auth.rol !== 'administrador' && (auth.rol !== 'dueno' || jugadorATransferir?.id_equipo !== auth.id_equipo)" class="alert alert-danger text-center py-2 mb-0" style="font-size:0.85rem;">
+              No tienes permisos para transferir a este jugador.
+            </div>
+
+            <template v-else>
+              <p class="mb-3">Selecciona el equipo destino para <strong>{{ jugadorATransferir?.nombre }} {{ jugadorATransferir?.apellido }}</strong>:</p>
+              <select v-model="equipoDestino" class="form-select">
+                <option value="">— Equipo destino —</option>
+                <option v-for="eq in equipos.filter(e => e.id_equipo !== jugadorATransferir?.id_equipo)" :key="eq.id_equipo" :value="eq.id_equipo">
+                  {{ eq.nombre_equipo }}
+                </option>
+              </select>
+            </template>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-ghost-secondary" @click="modalTransferir = false">Cancelar</button>

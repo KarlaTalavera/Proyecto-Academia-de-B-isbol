@@ -2,13 +2,15 @@ const EquipoModel = require('../models/equipo.model')
 
 const EquipoController = {
   async listar(req, res) {
-    const { rol, id_equipo } = req.usuario
-    const equipos = await EquipoModel.findAll()
-    if (rol === 'dueno') {
-      const filtered = equipos.filter(e => e.id_equipo === id_equipo)
-      return res.json(filtered)
+    try {
+      // Quitamos el "if (rol === 'dueno')" para que el dueño reciba la lista completa
+      // de equipos que necesita usar en el modal de transferencias.
+      const equipos = await EquipoModel.findAll()
+      res.json(equipos)
+    } catch (e) {
+      console.error('Error listando equipos:', e)
+      res.status(500).json({ error: 'Error interno del servidor' })
     }
-    res.json(equipos)
   },
 
   async obtener(req, res) {
