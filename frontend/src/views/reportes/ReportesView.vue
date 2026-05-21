@@ -52,6 +52,41 @@
           <span class="fw-semibold">Fecha fin:</span>
           <input v-model="fechaHasta" type="date" class="form-control form-control-sm" style="max-width:145px;" @change="cargar" />
         </div>
+         <div class="mb-3">
+            <label class="form-label fw-semibold text-secondary d-flex align-items-center gap-1">
+              <span>Proveedores</span>
+            </label>
+            
+            <div class="border rounded p-3 bg-light" style="max-height: 160px; overflow-y: auto;">
+              <div v-if="cargandoEtiquetas" class="text-muted small text-center py-2">
+                <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                Cargando servicios disponibles...
+              </div>
+
+              <div v-else-if="listaServicios.length === 0" class="text-muted small text-center py-2">
+                No se encontraron servicios registrados.
+              </div>
+
+              <div v-else class="row g-2">
+                <div v-for="servicio in listaServicios" :key="servicio" class="col-6 col-md-4 col-lg-3">
+                  <label 
+                    class="form-check form-check-inline m-0 cursor-pointer w-100 p-2 border rounded text-truncate"
+                    :class="serviciosSeleccionados.includes(servicio) ? 'bg-primary-soft border-primary' : 'bg-white'"
+                    style="display: block;">
+                    <input type="checkbox" class="form-check-input me-2" :value="servicio" v-model="serviciosSeleccionados" />
+                    <span class="form-check-label small text-capitalize" :class="serviciosSeleccionados.includes(servicio) ? 'text-primary fw-semibold' : ''">
+                      {{ servicio }}
+                    </span>
+                  </label>
+                </div>
+              </div>
+            </div>
+            
+            <div class="form-hint small text-muted mt-1">
+              Selecciona uno o varios servicios para filtrar la lista de egresos.
+            </div>
+          </div>
+
         <button v-if="fechaDesde || fechaHasta" class="btn btn-sm btn-ghost-secondary" @click="fechaDesde=''; fechaHasta=''; cargar()">
           Limpiar fechas
         </button>
@@ -161,14 +196,61 @@
             </div>
           </div>
 
+         
+
+<!-- Nueva sección: Detalle de Egresos Filtrados -->
+<div v-if="finanzas.egresos_detalle?.length" class="card shadow-sm mt-3">
+  <div class="card-header">
+    <div class="card-header d-flex justify-content-between align-items-center">
+  <div>
+    <span class="fw-bold">📋 Detalle de Egresos</span>
+    <span class="text-muted ms-2 small">({{ finanzas.egresos_detalle.length }} registros)</span>
+  </div>
+  <button class="btn btn-sm btn-outline-success" @click="exportDetalleExcel">
+    <IconFileSpreadsheet :size="16" class="me-1" /> Exportar Excel este detalle
+  </button>
+</div>
+  </div>
+  <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+    <table class="table table-vcenter table-sm">
+      <thead class="table-light sticky-top">
+        <tr>
+          <th style="min-width: 100px;">Fecha</th>
+          <th>Concepto</th>
+          <th>Proveedor</th>
+          <th>Servicio</th>
+          <th class="text-end" style="min-width: 120px;">Monto</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="eg in finanzas.egresos_detalle" :key="eg.id_egreso">
+          <td class="text-nowrap">{{ formatFecha(eg.fecha_egreso) }}</td>
+          <td>{{ eg.nota_gastos }}</td>
+          <td>{{ eg.proveedor }}</td>
+          <td>{{ eg.servicio }}</td>
+          <td class="text-end text-danger fw-bold">{{ formatBs(eg.gasto) }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
           <!-- Tablas detalle -->
           <div class="row g-3">
             <div class="col-md-6">
               <div class="card shadow-sm">
-                <div class="card-header d-flex align-items-center gap-2">
-                  <span class="badge bg-success-lt text-success fw-bold">+</span>
-                  <span class="fw-bold">Ingresos por Concepto</span>
-                </div>
+                <div class="card-header d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                    <div class="d-flex align-items-center gap-2">
+                      <span class="badge bg-success-lt text-success fw-bold">+</span>
+                      <span class="fw-bold">Ingresos por Concepto</span>
+                    </div>
+                    <div class="d-flex gap-2">
+                      <input v-model="busquedaIngresos" type="text" class="form-control form-control-sm" style="max-width: 200px;" placeholder="Buscar concepto..." />
+                      <button class="btn btn-sm btn-outline-success" @click="exportIngresosExcel">
+                        <IconFileSpreadsheet :size="16" class="me-1" /> Excel
+                      </button>
+                    </div>
+                  </div>
                 <div v-if="!finanzas.ingresos_por_concepto?.length" class="card-body text-center text-muted py-4">
                   Sin ingresos registrados
                 </div>
@@ -182,7 +264,7 @@
                       </tr>
                     </thead>
                     <tbody>
-                      <tr v-for="c in finanzas.ingresos_por_concepto" :key="c.categoria">
+                      <tr v-for="c in ingresosFiltrados":key="c.categoria">
                         <td class="fw-semibold">{{ c.categoria }}</td>
                         <td class="text-end text-success fw-bold">{{ formatBs(c.total) }}</td>
                         <td class="text-center">
@@ -262,6 +344,8 @@
         </template>
       </div>
 
+
+
       <!-- ── Sub-reportes financieros ───────────────────────── -->
       <ReporteTaquillaView          v-else-if="tab === 'taquilla'"    :embedded="true" :temporada-sel="temporadaId" />
       <ReporteOrigenIngresosView    v-else-if="tab === 'origen'"      :embedded="true" :temporada-sel="temporadaId" />
@@ -272,7 +356,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+
 import api from '@/services/api'
 import { useAuthStore } from '@/store/auth'
 import {
@@ -294,6 +379,8 @@ import ReporteHistoricoIngresosView from './ReporteHistoricoIngresosView.vue'
 
 const auth = useAuthStore()
 
+
+
 // --- ESTADO ---
 const tab        = ref(auth.puedeEditar ? 'bateadores' : 'finanzas')
 const temporadas = ref([])
@@ -301,6 +388,7 @@ const temporadaId = ref('')
 const fechaDesde = ref('')
 const fechaHasta = ref('')
 const cargando   = ref(false)
+const busquedaIngresos = ref('')
 const finanzas   = ref({
   total_ingresos: 0,
   total_egresos: 0,
@@ -308,6 +396,14 @@ const finanzas   = ref({
   ingresos_por_concepto: [],
   egresos_por_proveedor: [],
 })
+const listaServicios = ref([]) // Aquí guardaremos los servicios que traeremos de la BD
+const serviciosSeleccionados = ref([]) // Aquí se guardarán los que el usuario seleccione (los checkboxes)
+const cargandoEtiquetas = ref(false) // Para mostrar un estado de carga limpio
+
+// Recargar automáticamente cuando cambien los servicios seleccionados
+watch(serviciosSeleccionados, () => {
+  cargar()
+}, { deep: true })
 
 // --- COMPUTED ---
 const tabs = computed(() => {
@@ -352,29 +448,60 @@ const fechaGeneracion = computed(() =>
   new Date().toLocaleString('es-VE', { dateStyle: 'medium', timeStyle: 'short' })
 )
 
+const ingresosFiltrados = computed(() => {
+  if (!busquedaIngresos.value.trim()) return finanzas.value.ingresos_por_concepto
+  const term = busquedaIngresos.value.toLowerCase().trim()
+  return finanzas.value.ingresos_por_concepto.filter(c => 
+    c.categoria.toLowerCase().includes(term)
+  )
+})
+
 // --- MÉTODOS ---
 function formatBs(v) {
   return new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2 }).format(v || 0) + ' Bs.'
+}
+
+async function cargarEtiquetasProveedores() {
+  cargandoEtiquetas.value = true
+  try {
+    console.log('--- 🌐 Frontend disparando la petición Axios... ---')
+    // 💡 Ajustamos la ruta aquí para que coincida con el backend protegido
+    const { data } = await api.get('/finanzas/egresos/servicios')
+    console.log('--- 📥 Frontend recibió esto del servidor:', data)
+    listaServicios.value = data
+  } catch (error) {
+    console.error('Error al conectar con la base de datos de servicios:', error)
+  } finally {
+    cargandoEtiquetas.value = false
+  }
 }
 
 async function cargar() {
   if (!temporadaId.value) return
   cargando.value = true
   try {
-    const params = { temporada: temporadaId.value }
+    const params = {
+      temporada: temporadaId.value,
+    }
+    if (serviciosSeleccionados.value.length) {
+      params.servicios = serviciosSeleccionados.value.join(',')
+    }
     if (fechaDesde.value) params.fechaDesde = fechaDesde.value
     if (fechaHasta.value) params.fechaHasta = fechaHasta.value
 
-    const { data } = await api.get('/reportes/finanzas', {
-      params,
-    }).catch(() => ({ data: {} }))
+    const { data } = await api.get('/finanzas/balance', { params })
+    
     finanzas.value = {
       total_ingresos: Number(data.total_ingresos || 0),
       total_egresos:  Number(data.total_egresos  || 0),
       balance:        Number(data.balance        || 0),
       ingresos_por_concepto: (data.ingresos_por_concepto || []).map(c => ({ ...c, total: Number(c.total || 0) })),
       egresos_por_proveedor: (data.egresos_por_proveedor || []).map(p => ({ ...p, total: Number(p.total || 0) })),
+      egresos_por_servicio: (data.egresos_por_servicio || []).map(s => ({ ...s, total: Number(s.total || 0) })),
+      egresos_detalle: (data.egresos_detalle || []).map(e => ({ ...e, gasto: Number(e.gasto) })),
     }
+  } catch (error) {
+    console.error('Error al cargar reporte:', error)
   } finally {
     cargando.value = false
   }
@@ -388,6 +515,14 @@ async function cargarTemporadas() {
     temporadaId.value = activa.id_temporada
     cargar()
   }
+}
+
+
+
+function formatFecha(f) {
+  if (!f) return '—'
+  const date = new Date(f)
+  return date.toLocaleDateString('es-VE', { year: 'numeric', month: '2-digit', day: '2-digit' })
 }
 
 // --- LOGO BASE64 ---
@@ -587,7 +722,90 @@ function exportFinanzasExcel() {
   )
 }
 
-onMounted(cargarTemporadas)
+// --- EXPORTAR EXCEL SOLO DE LA TABLA DE INGRESOS POR CONCEPTO ---
+function exportIngresosExcel() {
+  const datosFiltrados = ingresosFiltrados.value;
+  if (!datosFiltrados.length) {
+    alert('No hay datos para exportar');
+    return;
+  }
+
+  // Preparar filas para el Excel (Concepto, Monto, % del total)
+  const filas = datosFiltrados.map(c => ({
+    Concepto: c.categoria,
+    'Monto (Bs.)': c.total,
+    '% del total': finanzas.value.total_ingresos 
+      ? ((c.total / finanzas.value.total_ingresos) * 100).toFixed(2) + '%'
+      : '0%'
+  }));
+
+  // Agregar fila de total
+  filas.push({
+    Concepto: 'TOTAL',
+    'Monto (Bs.)': finanzas.value.total_ingresos,
+    '% del total': '100%'
+  });
+
+  const ws = XLSX.utils.json_to_sheet(filas);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Ingresos_por_Concepto');
+  saveAs(
+    new Blob([XLSX.write(wb, { type: 'array', bookType: 'xlsx' })]),
+    `ingresos-por-concepto-${temporadaNombre.value.replace(/\s+/g, '_')}.xlsx`
+  );
+}
+
+// --- EXPORTAR EXCEL SOLO DEL DETALLE DE EGRESOS ---
+function exportDetalleExcel() {
+  if (!finanzas.value.egresos_detalle?.length) {
+    alert('No hay datos para exportar');
+    return;
+  }
+
+  // Preparar los datos para el Excel (las mismas columnas que la tabla)
+  const datos = finanzas.value.egresos_detalle.map(eg => ({
+    Fecha: formatFecha(eg.fecha_egreso),
+    Concepto: eg.nota_gastos,
+    Proveedor: eg.proveedor,
+    Servicio: eg.servicio,
+    Monto_Bs: eg.gasto,
+  }));
+
+  // Agregar fila de total
+  const total = finanzas.value.egresos_detalle.reduce((sum, eg) => sum + eg.gasto, 0);
+  datos.push({
+    Fecha: '',
+    Concepto: 'TOTAL',
+    Proveedor: '',
+    Servicio: '',
+    Monto_Bs: total,
+  });
+
+  const ws = XLSX.utils.json_to_sheet(datos);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Detalle_Egresos');
+  saveAs(
+    new Blob([XLSX.write(wb, { type: 'array', bookType: 'xlsx' })]),
+    `detalle-egresos-${temporadaNombre.value.replace(/\s+/g, '_')}.xlsx`
+  );
+}
+
+
+onMounted(async () => {
+  // 1. Cargamos las temporadas primero
+  try {
+    await cargarTemporadas()
+  } catch (error) {
+    console.error("Error al cargar temporadas:", error)
+  }
+
+  // 2. Cargamos nuestras etiquetas (así, si lo de arriba falla, esto corre igual)
+  try {
+    await cargarEtiquetasProveedores()
+  } catch (error) {
+    console.error("Error al cargar etiquetas de proveedores:", error)
+  }
+})
 </script>
 
 <style scoped>
@@ -612,3 +830,11 @@ onMounted(cargarTemporadas)
   border-left: 4px solid #ef4444 !important;
 }
 </style>
+
+/* Resaltado para servicios seleccionados */
+.bg-primary-soft {
+  background-color: #e0f2fe !important;  /* azul muy claro */
+}
+.border-primary {
+  border-color: #0ea5e9 !important;
+}

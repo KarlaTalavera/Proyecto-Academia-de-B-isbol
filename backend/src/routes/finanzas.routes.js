@@ -7,6 +7,7 @@ const finanzas = soloRoles('administrador', 'caja')
 const soloAdmin = soloRoles('administrador')
 
 // Balance — administrador y caja
+router.get('/egresos/servicios', verificarToken, finanzas, FinanzasController.obtenerServiciosProveedores)
 router.get('/balance', verificarToken, finanzas, FinanzasController.balance)
 
 // Ingresos
