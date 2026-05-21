@@ -137,8 +137,8 @@
                 </div>
               </div>
               <div class="row">
-                <div class="col-md-6 mb-3">
-                  <label class="form-label fw-semibold" style="font-size:0.82rem;">Cédula</label>
+                <div class="col-md-6 mb-3" v-if="mostrarCedula">
+                  <label class="form-label fw-semibold" style="font-size:0.82rem;">Cédula <span class="text-danger">*</span></label>
                   <input v-model="form.cedula" class="form-control" placeholder="V-00000000" />
                 </div>
                 <div class="col-md-6 mb-3">
@@ -309,6 +309,21 @@ const jugadoresPagina = computed(() => {
 
 watch([busqueda, filtroEquipo], () => { paginaActual.value = 1 })
 
+function calcularEdad(fechaNacimiento) {
+  if (!fechaNacimiento) return null
+  const hoy = new Date()
+  const nac = new Date(fechaNacimiento)
+  let edad = hoy.getFullYear() - nac.getFullYear()
+  const m = hoy.getMonth() - nac.getMonth()
+  if (m < 0 || (m === 0 && hoy.getDate() < nac.getDate())) edad--
+  return edad
+}
+
+const mostrarCedula = computed(() => {
+  const edad = calcularEdad(form.value.fecha_nacimiento)
+  return edad !== null && edad >= 9
+})
+
 function badgeRol(rol) {
   return { bateador: 'bg-blue-lt text-blue', pitcher: 'bg-purple-lt text-purple', utilidad: 'bg-orange-lt text-orange' }[rol] || 'bg-secondary-lt'
 }
@@ -364,16 +379,26 @@ async function guardar() {
   const apellido = (form.value.apellido || '').trim()
   if (nombre.length < 2) { toast.warn('El nombre debe tener al menos 2 caracteres'); return }
   if (apellido.length < 2) { toast.warn('El apellido debe tener al menos 2 caracteres'); return }
-  if (form.value.cedula) {
+  // Validación de cédula según edad
+if (mostrarCedula.value) {
+    if (!form.value.cedula) {
+      toast.warn('La cédula es obligatoria para jugadores de 9 años o más')
+      return
+    }
     const cedula = form.value.cedula.toUpperCase()
     if (!/^[VE]-\d{1,8}$/.test(cedula)) {
-      toast.warn('La cédula debe tener el formato V-00000000 o E-00000000'); return
+      toast.warn('La cédula debe tener el formato V-00000000 o E-00000000')
+      return
     }
     const num = parseInt(cedula.split('-')[1], 10)
-    if (num < 1 || num > 34000000) {
-      toast.warn('El número de cédula debe estar entre 1 y 34.000.000'); return
+    if (num < 1 || num > 99999999) {
+      toast.warn('El número de cédula debe estar entre 1 y 99.999.999')
+      return
     }
     form.value.cedula = cedula
+  } else {
+    // Si es menor de 9 años, aseguramos que la cédula sea null
+    form.value.cedula = null
   }
   if (form.value.fecha_nacimiento) {
     const hoy = new Date()
