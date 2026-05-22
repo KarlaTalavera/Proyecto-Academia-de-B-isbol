@@ -1,7 +1,7 @@
 const InscripcionModel = require('../models/inscripcion.model')
 const IngresoModel     = require('../models/ingreso.model')
 
-async function sincronizarIngreso(inscripcionId, { id_equipo, id_temporada, fecha_inscripcion, estado_pago, monto_pagado }) {
+async function sincronizarIngreso(inscripcionId, { id_equipo, id_temporada, fecha_inscripcion, estado_pago, monto_pagado, tipo_pago }) {
   const concepto = `Inscripción equipo #${inscripcionId}`
   const ingresoExistente = await IngresoModel.findByConcepto(concepto)
   const valor = Number(monto_pagado || 0)
@@ -15,7 +15,7 @@ async function sincronizarIngreso(inscripcionId, { id_equipo, id_temporada, fech
         concepto,
         valor,
         fecha_ingreso: fecha_inscripcion,
-        tipo_pago: null,
+        tipo_pago: tipo_pago,
         categoria: 'inscripcion',
       })
     } else {
@@ -25,7 +25,7 @@ async function sincronizarIngreso(inscripcionId, { id_equipo, id_temporada, fech
         concepto,
         valor,
         fecha_ingreso: fecha_inscripcion,
-        tipo_pago: null,
+        tipo_pago: tipo_pago,
         categoria: 'inscripcion',
       })
     }

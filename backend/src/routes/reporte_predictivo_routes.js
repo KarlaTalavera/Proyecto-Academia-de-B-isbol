@@ -464,14 +464,24 @@ router.get('/prediccion-asistencia', soloRoles('administrador'), async (req, res
 // 4. ALERTA DE JUGADORES EN DECLIVE / ASCENSO
 //    Detecta automáticamente jugadores con cambios significativos de rendimiento
 // ══════════════════════════════════════════════════════════════════════════════
-router.get('/alertas-rendimiento', soloRoles('administrador'), async (req, res) => {
+router.get('/alertas-rendimiento', soloRoles('administrador, dueno'), async (req, res) => {
   try {
     const { temporada, umbral = 15 } = req.query
     if (!temporada) return res.status(400).json({ error: 'Parámetro temporada requerido' })
 
+    const { rol, id_equipo } = req.user;
+    
+    // Si NO es administrador, filtramos por su equipo
+    let filtroEquipo = '';
+    let params = [temporada];
+    
+    if (rol !== 'administrador') {
+      filtroEquipo = ' AND d.id_equipo = ?';
+      params.push(id_equipo);
+    }
+
     const umbralNum = Number(umbral)
 
-    // Bateadores: comparar últimos 3 partidos vs anteriores
     const [bateadores] = await db.query(
       `SELECT
          j.id_jugador,
@@ -485,10 +495,10 @@ router.get('/alertas-rendimiento', soloRoles('administrador'), async (req, res) 
        JOIN jugador j ON d.id_jugador = j.id_jugador
        JOIN equipo  e ON d.id_equipo  = e.id_equipo
        JOIN partido p ON d.id_partido = p.id_partido
-       WHERE p.id_temporada = ? AND d.turnos_al_bate > 0
+       WHERE p.id_temporada = ? ${filtroEquipo}
        ORDER BY j.id_jugador, p.fecha_juego ASC`,
-      [temporada]
-    )
+      params 
+    );
 
     const jugMap = {}
     for (const r of bateadores) {
@@ -543,10 +553,10 @@ router.get('/alertas-rendimiento', soloRoles('administrador'), async (req, res) 
        JOIN jugador j ON d.id_jugador = j.id_jugador
        JOIN equipo  e ON d.id_equipo  = e.id_equipo
        JOIN partido p ON d.id_partido = p.id_partido
-       WHERE p.id_temporada = ? AND d.innings_pitcheados > 0
+       WHERE p.id_temporada = ? ${filtroEquipo}
        ORDER BY j.id_jugador, p.fecha_juego ASC`,
-      [temporada]
-    )
+      params 
+    );
 
     const pitMap = {}
     for (const r of pitchers) {

@@ -9,7 +9,7 @@
         </div>
         <div>
           <h2 class="pred-title">Reportes Predictivos</h2>
-          <p class="pred-subtitle">Análisis de tendencias y proyecciones — Solo Administrador</p>
+          <p class="pred-subtitle">Análisis de tendencias y proyecciones</p>
         </div>
       </div>
     </div>

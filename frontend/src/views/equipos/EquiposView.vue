@@ -221,8 +221,8 @@ async function guardar() {
   if (form.value.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.value.email)) {
     toast.warn('El formato del email no es válido'); return
   }
-  if (form.value.telefono && !/^0\d{3}-\d{3}-\d{4}$/.test(form.value.telefono)) {
-    toast.warn('El teléfono debe tener el formato 0414-000-0000'); return
+  if (form.value.telefono && !/^0\d{3}-\d{7}$/.test(form.value.telefono)) {
+    toast.warn('El teléfono debe tener el formato 0000-1234567'); return
   }
   guardando.value  = true
   errorModal.value = ''

@@ -185,16 +185,16 @@
                   <label class="form-label fw-semibold" style="font-size:0.82rem;">Posición <span class="text-danger">*</span></label>
                   <select v-model="form.posicion" class="form-select" required>
                     <option value="">— Seleccionar —</option>
-                    <option v-for="p in posiciones" :key="p">{{ p }}</option>
+                    <option v-for="p in posiciones" :key="p.valor" :value="p.valor">{{ p.label }}</option>
                   </select>
                 </div>
                 <div class="col-md-6 mb-3">
                   <label class="form-label fw-semibold" style="font-size:0.82rem;">Brazo Dominante</label>
                   <select v-model="form.brazo_dominante" class="form-select">
                     <option value="">— Seleccionar —</option>
-                    <option value="Derecho">Derecho</option>
-                    <option value="Zurdo">Zurdo</option>
-                    <option value="Ambidiestro">Ambidiestro</option>
+                    <option value="derecho">Derecho</option>
+                    <option value="izquierdo">Zurdo (Izquierdo)</option>
+                    <option value="ambidiestro">Ambidiestro</option>
                   </select>
                 </div>
               </div>
@@ -302,9 +302,17 @@ const modalRecepcionAbierto = ref(false)
 const transferenciasPendientes = ref([])
 
 const posiciones = [
-  'Lanzador (P)', 'Receptor (C)', 'Primera Base (1B)', 'Segunda Base (2B)',
-  'Tercera Base (3B)', 'Shortstop (SS)', 'Jardinero Izquierdo (LF)',
-  'Jardinero Central (CF)', 'Jardinero Derecho (RF)', 'Bateador Designado (DH)',
+  { valor: 'P', label: 'Lanzador (P)' },
+  { valor: 'C', label: 'Receptor (C)' },
+  { valor: '1B', label: 'Primera Base (1B)' },
+  { valor: '2B', label: 'Segunda Base (2B)' },
+  { valor: '3B', label: 'Tercera Base (3B)' },
+  { valor: 'SS', label: 'Shortstop (SS)' },
+  { valor: 'LF', label: 'Jardinero Izquierdo (LF)' },
+  { valor: 'CF', label: 'Jardinero Central (CF)' },
+  { valor: 'RF', label: 'Jardinero Derecho (RF)' },
+  { valor: 'DH', label: 'Bateador Designado (DH)' },
+  { valor: 'UT', label: 'Utilidad (UT)' }
 ]
 
 const form = ref({ id_equipo: '', cedula: '', nombre: '', apellido: '', fecha_nacimiento: '', rol: 'bateador', posicion: '', brazo_dominante: '', activo: 1 })
@@ -434,7 +442,7 @@ if (mostrarCedula.value) {
     const hoy = new Date()
     const nacimiento = new Date(form.value.fecha_nacimiento)
     const edad = (hoy - nacimiento) / (1000 * 60 * 60 * 24 * 365.25)
-    if (edad < 10 || edad > 60) { toast.warn('La edad del jugador debe estar entre 10 y 60 años'); return }
+    if (edad < 3 || edad > 70) { toast.warn('La edad del jugador debe estar entre 10 y 60 años'); return }
   }
   guardando.value = true
   errorModal.value = ''
