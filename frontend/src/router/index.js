@@ -70,6 +70,13 @@ const routes = [
           { path: 'egresos',  name: 'Egresos',  component: () => import('@/views/finanzas/EgresosView.vue') },
         ],
       },
+      {
+        path: '/jugadores/:id/estadisticas',
+        name: 'EstadisticasJugador',
+        component: () => import('@/views/EstadisticasJugador.vue'),
+        meta: { requiresAuth: true }
+      },
+
     ],
   },
 

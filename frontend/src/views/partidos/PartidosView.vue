@@ -481,7 +481,16 @@
                           <td colspan="7" class="text-center text-muted py-3">No hay bateadores registrados para este equipo. Verifica el Lineup.</td>
                         </tr>
                         <tr v-for="b in statsVisibles.bateadores" :key="b.id_jugador">
-                          <td class="fw-semibold" style="font-size:0.8rem;">{{ b.nombre }} {{ b.apellido }}</td>
+                          <td class="fw-semibold" style="font-size:0.8rem;">
+                            <RouterLink
+                              :to="{ name: 'EstadisticasJugador', params: { id: b.id_jugador } }"
+                              class="text-decoration-none"
+                              style="color:inherit;"
+                            >
+                              {{ b.nombre }} {{ b.apellido }}
+                              <IconExternalLink :size="11" style="opacity:0.4; margin-left:2px;" />
+                            </RouterLink>
+                          </td>
                           <template v-if="esAnotadorOrAdmin && partidoYaComenzo">
                             <td><input type="number" min="0" class="form-control form-control-sm text-center px-1" style="width:45px;" v-model.number="b.turnos_al_bate" /></td>
                             <td><input type="number" min="0" class="form-control form-control-sm text-center px-1 bg-blue-lt" style="width:45px;" v-model.number="b.carreras" /></td>
@@ -518,7 +527,16 @@
                           <td colspan="6" class="text-center text-muted py-3">No hay pitchers registrados para este equipo. Verifica el Lineup.</td>
                         </tr>
                         <tr v-for="pt in statsVisibles.pitchers" :key="pt.id_jugador">
-                          <td class="fw-semibold" style="font-size:0.8rem;">{{ pt.nombre }} {{ pt.apellido }}</td>
+                          <td class="fw-semibold" style="font-size:0.8rem;">
+                            <RouterLink
+                              :to="{ name: 'EstadisticasJugador', params: { id: pt.id_jugador } }"
+                              class="text-decoration-none"
+                              style="color:inherit;"
+                            >
+                              {{ pt.nombre }} {{ pt.apellido }}
+                              <IconExternalLink :size="11" style="opacity:0.4; margin-left:2px;" />
+                            </RouterLink>
+                          </td>
                           <template v-if="esAnotadorOrAdmin && partidoYaComenzo">
                             <td><input type="number" min="0" step="0.1" class="form-control form-control-sm text-center px-1" style="width:55px;" v-model.number="pt.innings_pitcheados" /></td>
                             <td><input type="number" min="0" class="form-control form-control-sm text-center px-1" style="width:50px;" v-model.number="pt.hits_permitidos" /></td>

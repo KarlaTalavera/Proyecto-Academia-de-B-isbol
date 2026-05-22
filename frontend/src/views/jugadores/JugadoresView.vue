@@ -104,7 +104,15 @@
                         @click="abrirModalTransferir(j)">
                   <IconArrowsRightLeft :size="15" />
                 </button>
-                
+
+                <button
+                  class="btn btn-sm btn-ghost-info me-1"
+                  title="Ver estadísticas"
+                  @click="$router.push({ name: 'EstadisticasJugador', params: { id: j.id_jugador } })"
+                >
+                  <IconChartBar :size="15" />
+                </button>
+                              
                 <button v-if="puedeEditarJugador(j)" class="btn btn-sm btn-ghost-primary me-1" @click="abrirFormulario(j)"><IconPencil :size="15" /></button>
                 <button v-if="puedeEditarJugador(j)" class="btn btn-sm btn-ghost-danger" @click="confirmarEliminar(j)"><IconTrash :size="15" /></button>
               
@@ -279,6 +287,7 @@ import { useAuthStore } from '@/store/auth'
 import { useToast }   from '@/composables/useToast'
 import { useConfirm } from '@/composables/useConfirm'
 import { IconPlus, IconSearch, IconPencil, IconTrash, IconUsers, IconDeviceFloppy, IconCamera, IconArrowsRightLeft, IconAlertTriangle } from '@tabler/icons-vue'
+import { IconChartBar } from '@tabler/icons-vue'
 
 const apiBase = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3000'
 
