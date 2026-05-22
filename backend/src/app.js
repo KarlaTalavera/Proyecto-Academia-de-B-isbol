@@ -36,6 +36,10 @@ app.use('/api/estadios',       require('./routes/estadio.routes'))
 app.use('/api/sanciones',       require('./routes/sancion.routes'))
 app.use('/api/noticias',        require('./routes/noticia.routes'))
 app.use('/api/notificaciones',  require('./routes/notificacion.routes'))
+const reportesPredictivos = require('./routes/reporte_predictivo_routes')
+app.use('/api/reportes-predictivos', reportesPredictivos)
+app.use('/api/estadisticas',          require('./routes/estadisticas.routes'))
+app.use('/api/reportes-predictivos',  require('./routes/reporte_predictivo_routes'))
 
 // ── Manejo global de errores ─────────────────────────────────
 app.use((err, req, res, next) => {
