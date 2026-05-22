@@ -19,28 +19,26 @@ const EstadioModel = {
 
   async create({ nombre, ciudad, direccion, capacidad, foto_url, activo }) {
     const [result] = await db.query(
-      `INSERT INTO estadio (nombre, ciudad, direccion, capacidad, foto_url, activo)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO estadio (nombre, ciudad, direccion, capacidad, activo)
+       VALUES (?, ?, ?, ?, ?)`,
       [
         nombre,
         ciudad,
         direccion || null,
         Number(capacidad) || 0,
-        foto_url || null,
         activo === 0 || activo === '0' ? 0 : 1,
       ]
     )
     return result.insertId
   },
 
-  async update(id, { nombre, ciudad, direccion, capacidad, foto_url, activo }) {
+  async update(id, { nombre, ciudad, direccion, capacidad, activo }) {
     const [result] = await db.query(
       `UPDATE estadio SET
          nombre = ?,
          ciudad = ?,
          direccion = ?,
          capacidad = ?,
-         foto_url = ?,
          activo = ?
        WHERE id_estadio = ?`,
       [
@@ -48,7 +46,6 @@ const EstadioModel = {
         ciudad,
         direccion || null,
         Number(capacidad) || 0,
-        foto_url || null,
         activo === 0 || activo === '0' ? 0 : 1,
         id,
       ]

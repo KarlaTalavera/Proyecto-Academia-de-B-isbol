@@ -30,7 +30,7 @@ const EstadioController = {
   },
 
   async actualizar(req, res) {
-    const { nombre, ciudad, direccion, capacidad, foto_url, activo } = req.body
+    const { nombre, ciudad, direccion, capacidad, activo } = req.body
     if (!nombre || !ciudad) {
       return res.status(400).json({ error: 'Nombre y ciudad son requeridos' })
     }
@@ -39,7 +39,6 @@ const EstadioController = {
       ciudad: ciudad.trim(),
       direccion: direccion?.trim(),
       capacidad,
-      foto_url: foto_url?.trim(),
       activo,
     })
     if (!affected) return res.status(404).json({ error: 'Estadio no encontrado' })
