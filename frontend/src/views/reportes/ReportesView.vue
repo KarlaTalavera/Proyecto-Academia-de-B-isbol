@@ -351,12 +351,15 @@
       <ReporteOrigenIngresosView    v-else-if="tab === 'origen'"      :embedded="true" :temporada-sel="temporadaId" />
       <ReporteHistoricoIngresosView v-else-if="tab === 'historico'"   :embedded="true" :temporada-sel="temporadaId" />
 
-    </div>
+      <!-- ── Predictivo (solo admin) ───────────────────────── -->
+      <ReportePreditivoView        v-else-if="tab === 'predictivo'"  :embedded="true" :temporada-sel="temporadaId" />    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
+import ReportePreditivoView from './ReportePreditivoView.vue'
+
 
 import api from '@/services/api'
 import { useAuthStore } from '@/store/auth'
@@ -365,6 +368,7 @@ import {
   IconFileTypePdf, IconFileSpreadsheet,
   IconChartPie, IconChartLine, IconTicket, IconBallBaseball,
   IconTrendingUp, IconTrendingDown, IconArrowUpRight, IconArrowDownRight,
+  IconChartDots3,   // ← agregar esto
 } from '@tabler/icons-vue'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
@@ -415,10 +419,15 @@ const tabs = computed(() => {
     )
   }
   if (auth.puedeFinanzas) base.push(
-    { key: 'finanzas',  label: 'Finanzas',        icon: IconWallet },
-    { key: 'taquilla',  label: 'Taquilla',         icon: IconTicket },
-    { key: 'origen',    label: 'Origen Ingresos',  icon: IconChartPie },
-    { key: 'historico', label: 'Hist. Ingresos',   icon: IconChartLine },
+    { key: 'finanzas',   label: 'Finanzas',        icon: IconWallet     },
+    { key: 'taquilla',   label: 'Taquilla',         icon: IconTicket     },
+    { key: 'origen',     label: 'Origen Ingresos',  icon: IconChartPie   },
+    { key: 'historico',  label: 'Hist. Ingresos',   icon: IconChartLine  },
+    { key: 'predictivo', label: 'Predictivo',        icon: IconChartDots3 },
+  )
+  // Dueño: ve predictivo solo cuando no tiene acceso a finanzas (evita duplicado)
+  if (auth.esDueno && !auth.puedeFinanzas) base.push(
+    { key: 'predictivo', label: 'Predictivo',        icon: IconChartDots3 },
   )
   return base
 })
@@ -799,11 +808,14 @@ onMounted(async () => {
     console.error("Error al cargar temporadas:", error)
   }
 
-  // 2. Cargamos nuestras etiquetas (así, si lo de arriba falla, esto corre igual)
-  try {
-    await cargarEtiquetasProveedores()
-  } catch (error) {
-    console.error("Error al cargar etiquetas de proveedores:", error)
+  // 2. Solo cargar etiquetas de proveedores si tiene acceso a finanzas
+  //    (evita 403 que cierra sesión del dueño)
+  if (auth.puedeFinanzas) {
+    try {
+      await cargarEtiquetasProveedores()
+    } catch (error) {
+      console.error("Error al cargar etiquetas de proveedores:", error)
+    }
   }
 })
 </script>

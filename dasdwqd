@@ -1,0 +1,135 @@
+[1mdiff --git a/frontend/src/views/reportes/ReportesView.vue b/frontend/src/views/reportes/ReportesView.vue[m
+[1mindex 247fc31..65428ef 100644[m
+[1m--- a/frontend/src/views/reportes/ReportesView.vue[m
+[1m+++ b/frontend/src/views/reportes/ReportesView.vue[m
+[36m@@ -1,9 +1,17 @@[m
+ <template>[m
+[32m+[m[32m<<<<<<< HEAD[m
+   <div class="container-fluid">[m
+     <div class="page-header d-flex align-items-center justify-content-between mb-4">[m
+       <div>[m
+         <h2 class="page-title">Reportes</h2>[m
+         <p class="page-subtitle text-muted">Estadísticas, finanzas y análisis de la liga</p>[m
+[32m+[m[32m=======[m
+[32m+[m[32m  <div>[m
+[32m+[m[32m    <div class="page-header d-flex align-items-center justify-content-between mb-4">[m
+[32m+[m[32m      <div>[m
+[32m+[m[32m        <h2 class="page-title">Reportes</h2>[m
+[32m+[m[32m        <p class="page-subtitle">Estadísticas y tabla de posiciones</p>[m
+[32m+[m[32m>>>>>>> 7f7b453 (Sistema Liga Diamante — proyecto completo Node.js + Vue 3)[m
+       </div>[m
+       <select v-model="temporadaId" class="form-select form-select-sm" style="max-width:220px;" @change="cargar">[m
+         <option value="">— Seleccionar temporada —</option>[m
+[36m@@ -13,6 +21,7 @@[m
+       </select>[m
+     </div>[m
+ [m
+[32m+[m[32m<<<<<<< HEAD[m
+     <div class="d-flex gap-1 mb-4 p-1 flex-wrap tab-container">[m
+       <button v-for="t in tabs" :key="t.key"[m
+         class="btn btn-sm"[m
+[36m@@ -255,12 +264,173 @@[m
+       <ReporteHistoricoIngresosView v-else-if="tab === 'historico'"   :embedded="true" :temporada-sel="temporadaId" />[m
+ [m
+     </div>[m
+[32m+[m[32m=======[m
+[32m+[m[32m    <!-- Tabs -->[m
+[32m+[m[32m    <div class="d-flex gap-1 mb-4 p-1" style="background:rgba(0,0,0,0.06); border-radius:10px; display:inline-flex!important;">[m
+[32m+[m[32m      <button[m
+[32m+[m[32m        class="btn btn-sm"[m
+[32m+[m[32m        :class="tab === 'posiciones' ? 'btn-white shadow-sm fw-semibold' : 'btn-ghost-secondary'"[m
+[32m+[m[32m        style="border-radius:8px; font-size:0.82rem;"[m
+[32m+[m[32m        @click="tab = 'posiciones'"[m
+[32m+[m[32m      >[m
+[32m+[m[32m        <IconTrophy :size="15" class="me-1" /> Tabla de Posiciones[m
+[32m+[m[32m      </button>[m
+[32m+[m[32m      <button[m
+[32m+[m[32m        class="btn btn-sm"[m
+[32m+[m[32m        :class="tab === 'bateo' ? 'btn-white shadow-sm fw-semibold' : 'btn-ghost-secondary'"[m
+[32m+[m[32m        style="border-radius:8px; font-size:0.82rem;"[m
+[32m+[m[32m        @click="tab = 'bateo'"[m
+[32m+[m[32m      >[m
+[32m+[m[32m        <IconChartBar :size="15" class="me-1" /> Promedios de Bateo[m
+[32m+[m[32m      </button>[m
+[32m+[m[32m    </div>[m
+[32m+[m
+[32m+[m[32m    <!-- Sin temporada -->[m
+[32m+[m[32m    <div v-if="!temporadaId" class="card">[m
+[32m+[m[32m      <div class="card-body text-center py-5 text-muted">[m
+[32m+[m[32m        <IconChartBar :size="40" stroke-width="1.2" class="mb-2" style="opacity:0.3;" />[m
+[32m+[m[32m        <p class="mb-0">Selecciona una temporada para ver los reportes</p>[m
+[32m+[m[32m      </div>[m
+[32m+[m[32m    </div>[m
+[32m+[m
+[32m+[m[32m    <!-- Tabla de Posiciones -->[m
+[32m+[m[32m    <div v-else-if="tab === 'posiciones'">[m
+[32m+[m[32m      <div class="card">[m
+[32m+[m[32m        <div class="card-header d-flex align-items-center gap-2">[m
+[32m+[m[32m          <IconTrophy :size="18" class="text-warning" />[m
+[32m+[m[32m          <span class="fw-bold" style="font-size:0.9rem;">Tabla de Posiciones</span>[m
+[32m+[m[32m          <span v-if="temporadaNombre" class="ms-auto text-muted" style="font-size:0.78rem;">{{ temporadaNombre }}</span>[m
+[32m+[m[32m        </div>[m
+[32m+[m[32m        <div v-if="cargandoPos" class="text-center py-5">[m
+[32m+[m[32m          <span class="spinner-border spinner-border-sm text-primary me-2"></span> Cargando...[m
+[32m+[m[32m        </div>[m
+[32m+[m[32m        <div v-else class="table-responsive">[m
+[32m+[m[32m          <table class="table table-vcenter card-table">[m
+[32m+[m[32m            <thead>[m
+[32m+[m[32m              <tr>[m
+[32m+[m[32m                <th style="width:40px;">#</th>[m
+[32m+[m[32m                <th>Equipo</th>[m
+[32m+[m[32m                <th class="text-center" title="Juegos Jugados">JJ</th>[m
+[32m+[m[32m                <th class="text-center" title="Ganados">G</th>[m
+[32m+[m[32m                <th class="text-center" title="Perdidos">P</th>[m
+[32m+[m[32m                <th class="text-center" title="Porcentaje de victorias">PCT</th>[m
+[32m+[m[32m                <th class="text-center" title="Juegos de diferencia">JD</th>[m
+[32m+[m[32m              </tr>[m
+[32m+[m[32m            </thead>[m
+[32m+[m[32m            <tbody>[m
+[32m+[m[32m              <tr v-if="!posiciones.length">[m
+[32m+[m[32m                <td colspan="7" class="text-center py-5 text-muted">Sin datos. Los partidos deben estar finalizados.</td>[m
+[32m+[m[32m              </tr>[m
+[32m+[m[32m              <tr v-for="(eq, i) in posiciones" :key="eq.id_equipo" :class="i === 0 ? 'table-success-lt' : ''">[m
+[32m+[m[32m                <td>[m
+[32m+[m[32m                  <div class="d-flex align-items-center justify-content-center">[m
+[32m+[m[32m                    <IconTrophy v-if="i === 0" :size="16" class="text-warning" />[m
+[32m+[m[32m                    <span v-else class="text-muted fw-bold" style="font-size:0.82rem;">{{ i + 1 }}</span>[m
+[32m+[m[32m                  </div>[m
+[32m+[m[32m                </td>[m
+[32m+[m[32m                <td>[m
+[32m+[m[32m                  <div class="d-flex align-items-center gap-2">[m
+[32m+[m[32m                    <div class="team-avatar" :style="i === 0 ? 'background:linear-gradient(135deg,#f59e0b,#f97316);' : ''">[m
+[32m+[m[32m                      {{ eq.nombre_equipo?.charAt(0) }}[m
+[32m+[m[32m                    </div>[m
+[32m+[m[32m                    <span class="fw-semibold" style="font-size:0.875rem; color:#1e293b;">{{ eq.nombre_equipo }}</span>[m
+[32m+[m[32m                  </div>[m
+[32m+[m[32m                </td>[m
+[32m+[m[32m                <td class="text-center fw-bold">{{ eq.jugados }}</td>[m
+[32m+[m[32m                <td class="text-center text-success fw-bold">{{ eq.ganados }}</td>[m
+[32m+[m[32m                <td class="text-center text-danger">{{ eq.perdidos }}</td>[m
+[32m+[m[32m                <td class="text-center">[m
+[32m+[m[32m                  <span class="fw-bold" :style="eq.ganados > eq.perdidos ? 'color:#16a34a;' : ''">[m
+[32m+[m[32m                    {{ pct(eq.ganados, eq.jugados) }}[m
+[32m+[m[32m                  </span>[m
+[32m+[m[32m                </td>[m
+[32m+[m[32m                <td class="text-center text-muted">[m
+[32m+[m[32m                  {{ i === 0 ? '—' : (posiciones[0].ganados - eq.ganados) + '.0' }}[m
+[32m+[m[32m                </td>[m
+[32m+[m[32m              </tr>[m
+[32m+[m[32m            </tbody>[m
+[32m+[m[32m          </table>[m
+[32m+[m[32m        </div>[m
+[32m+[m[32m      </div>[m
+[32m+[m[32m    </div>[m
+[32m+[m
+[32m+[m[32m    <!-- Promedios de Bateo -->[m
+[32m+[m[32m    <div v-else-if="tab === 'bateo'">[m
+[32m+[m[32m      <div class="card">[m
+[32m+[m[32m        <div class="card-header d-flex align-items-center gap-2">[m
+[32m+[m[32m          <IconChartBar :size="18" class="text-primary" />[m
+[32m+[m[32m          <span class="fw-bold" style="font-size:0.9rem;">Promedios de Bateo</span>[m
+[32m+[m[32m          <span v-if="temporadaNombre" class="ms-auto text-muted" style="font-size:0.78rem;">{{ temporadaNombre }}</span>[m
+[32m+[m[32m        </div>[m
+[32m+[m[32m        <div class="card-header d-flex align-items-center gap-2">[m
+[32m+[m[32m          <div class="input-group input-group-sm" style="max-width:240px;">[m
+[32m+[m[32m            <span class="input-group-text" style="backgr

@@ -11,13 +11,14 @@ api.interceptors.request.use(config => {
   return config
 })
 
-// Redirige al login si el token expiró (no en la propia ruta de auth)
+// Redirige al login SOLO si el token expiró (401 = no autenticado)
+// El 403 significa "sin permiso" — no debe cerrar sesión
 api.interceptors.response.use(
   res => res,
   err => {
     const url = err.config?.url || ''
     const esRutaAuth = url.includes('/auth/login') || url.includes('/auth/registro')
-    if (!esRutaAuth && (err.response?.status === 401 || err.response?.status === 403)) {
+    if (!esRutaAuth && err.response?.status === 401) {
       localStorage.removeItem('token')
       window.location.href = '/login'
     }
